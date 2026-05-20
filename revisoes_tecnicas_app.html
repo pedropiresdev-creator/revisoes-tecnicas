@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<title>Revisões Técnicas de Projetos</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f2f5; height: 100vh; overflow: hidden; }
+
+/* ── ECRÃ GESTÃO ── */
+#ecraGestao {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 50px 20px; min-height: 100vh; overflow-y: auto;
+}
+#ecraGestao h1 { color: #1f2a38; margin-bottom: 6px; font-size: 26px; }
+.subtitulo-gestao { color: #666; margin-bottom: 36px; font-size: 14px; }
+
+.card-novo {
+  background: #fff; border: 2px dashed #007bff; border-radius: 10px;
+  padding: 28px 36px; width: 100%; max-width: 560px; margin-bottom: 30px;
+}
+.card-novo h3 { color: #007bff; margin-bottom: 16px; font-size: 16px; }
+
+.campo-grupo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.campo-grupo label { font-size: 13px; color: #444; font-weight: bold; }
+.campo-grupo input, .campo-grupo select {
+  padding: 9px 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; width: 100%;
+}
+.btn-criar {
+  background: #007bff; color: white; border: none; border-radius: 5px;
+  padding: 10px 22px; font-size: 14px; cursor: pointer; width: 100%;
+}
+.btn-criar:hover { background: #0069d9; }
+
+.lista-projetos { width: 100%; max-width: 560px; }
+.lista-projetos h3 { color: #1f2a38; margin-bottom: 14px; font-size: 16px; }
+
+.projeto-item {
+  background: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-left: 5px solid #1a6fbf; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+.proj-info { flex: 1; }
+.proj-nome { font-weight: bold; color: #1f2a38; font-size: 15px; }
+.proj-meta { font-size: 12px; color: #888; margin-top: 3px; }
+.proj-acoes { display: flex; gap: 8px; }
+
+.btn-abrir {
+  background: #1a6fbf; color: white; border: none; border-radius: 4px;
+  padding: 7px 14px; font-size: 13px; cursor: pointer;
+}
+.btn-abrir:hover { background: #155a9e; }
+.btn-apagar {
+  background: transparent; color: #c0392b; border: 1px solid #c0392b;
+  border-radius: 4px; padding: 7px 10px; font-size: 13px; cursor: pointer;
+}
+.btn-apagar:hover { background: #fdecea; }
+.sem-projetos {
+  color: #aaa; font-size: 14px; text-align: center;
+  padding: 20px; background: #fff; border-radius: 8px;
+}
+
+/* ── ECRÃ TRABALHO ── */
+#ecraTrabalho { display: none; height: 100vh; flex-direction: row; }
+
+.menu {
+  width: 230px; min-width: 230px; background: #1f2a38; color: white;
+  padding: 16px; display: flex; flex-direction: column; overflow-y: auto;
+}
+.menu-topo {
+  cursor: pointer; border-radius: 6px; padding: 10px;
+  margin: -4px -4px 0 -4px; transition: background 0.15s;
+  border-bottom: 1px solid #3d5470; margin-bottom: 14px;
+}
+.menu-topo:hover { background: #2a3d52; }
+.menu-topo .proj-home-label { font-size: 10px; color: #6a8aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+.menu-topo .proj-nome-ativo { font-size: 14px; font-weight: bold; color: #fff; line-height: 1.3; }
+.menu-topo .proj-fase-ativo { font-size: 11px; color: #90a8c3; margin-top: 3px; }
+.menu-esp-btn { position: relative !important; padding-right: 30px !important; }
+.menu-esp-dot { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; background: #3d5470; }
+.menu-esp-dot.feito { background: #28a745; }
+.menu-esp-dot.parcial { background: #f0c040; }
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+.esp-card { border: 2px solid #e0e0e0; border-radius: 8px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s; display: flex; align-items: flex-start; gap: 12px; user-select: none; }
+.esp-card:hover { border-color: #007bff; background: #f4f8ff; }
+.esp-card.selecionada { border-color: #007bff; background: #e9f2ff; }
+.esp-card.selecionada .esp-check { background: #007bff; border-color: #007bff; color: white; }
+.esp-check { width: 22px; height: 22px; border: 2px solid #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 2px; transition: all 0.15s; }
+.esp-info .esp-nome { font-weight: bold; font-size: 14px; color: #1f2a38; }
+.esp-info .esp-desc { font-size: 12px; color: #888; margin-top: 2px; }
+.esp-info .esp-estado { font-size: 12px; margin-top: 4px; font-weight: bold; }
+.esp-estado.vazio { color: #bbb; }
+.esp-estado.parcial { color: #c8a000; }
+.esp-estado.feito { color: #28a745; }
+.btn-confirmar-esp { background: #007bff; color: white; border: none; border-radius: 5px; padding: 10px 22px; font-size: 14px; cursor: pointer; margin-top: 20px; }
+.btn-confirmar-esp:hover { background: #0069d9; }
+.menu h3 { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #6a8aaa; margin: 14px 0 6px; }
+.menu button {
+  width: 100%; margin-top: 4px; padding: 9px 10px; border: none;
+  border-radius: 4px; background: #2f4055; color: white; cursor: pointer;
+  text-align: left; font-size: 13px; transition: background 0.15s;
+}
+.menu button:hover { background: #3d5470; }
+.menu button.ativo { background: #1a6fbf; }
+.menu hr { border-color: #3d5470; margin: 12px 0; }
+.menu-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid #3d5470; }
+.btn-voltar {
+  width: 100%; padding: 8px 10px; background: transparent; border: 1px solid #3d5470;
+  color: #90a8c3; border-radius: 4px; cursor: pointer; font-size: 12px;
+  text-align: left; margin-top: 6px;
+}
+.btn-voltar:hover { background: #2f4055; color: white; }
+
+.content { flex: 1; padding: 30px; overflow-y: auto; background: #f0f2f5; }
+
+/* ── CHECKLIST ── */
+.container {
+  max-width: 900px; background: #fff; margin: auto; padding: 30px;
+  border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+.container h1 { text-align: center; color: #1f2a38; margin-bottom: 6px; }
+.subtitulo-checklist { text-align: center; color: #888; font-size: 13px; margin-bottom: 20px; }
+h2 { border-bottom: 2px solid #e8e8e8; padding-bottom: 5px; margin-top: 36px; color: #1f2a38; font-size: 16px; }
+.section { margin-top: 18px; }
+.conditional { margin-left: 20px; margin-top: 10px; }
+.box-principal {
+  background: #e9f2ff; padding: 15px; border-radius: 8px;
+  border-left: 5px solid #007bff; margin-bottom: 14px;
+}
+.grupo-secundario {
+  background: #fafafa; padding: 15px; border-radius: 8px;
+  border: 1px solid #e0e0e0; margin-bottom: 14px;
+}
+textarea {
+  width: 100%; font-family: Consolas, monospace; border: 1px solid #ccc;
+  border-radius: 4px; padding: 8px; font-size: 13px;
+}
+.btn-preview {
+  padding: 11px 24px; font-size: 15px; cursor: pointer; margin-top: 20px;
+  background: #007bff; color: white; border: none; border-radius: 4px;
+}
+.btn-preview:hover { background: #0069d9; }
+.badge-guardado {
+  display: inline-block; background: #28a745; color: white; font-size: 12px;
+  padding: 3px 10px; border-radius: 20px; margin-left: 12px;
+  vertical-align: middle; opacity: 0; transition: opacity 0.4s;
+}
+.aviso-conclusao {
+  background: #fff8e1; border: 1px solid #f0c040; border-radius: 6px;
+  padding: 10px 14px; font-size: 12px; color: #7a6000; margin-bottom: 10px;
+}
+
+/* ── ECRÃ LOGIN ── */
+#ecraLogin { display: none; }
+.login-box {
+  background: #fff; border-radius: 12px; padding: 40px 44px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+.login-box h1 { color: #1f2a38; font-size: 22px; margin-bottom: 4px; text-align: center; }
+.login-sub { color: #888; font-size: 13px; text-align: center; margin-bottom: 28px; }
+.auth-msg { display:none; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+.auth-msg.erro { background: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; }
+.auth-msg.ok   { background: #eaf6ee; color: #1e7e34; border: 1px solid #c3e6cb; }
+.tabs-auth { display: flex; margin-bottom: 24px; border-bottom: 2px solid #e8e8e8; }
+.tab-btn {
+  flex: 1; padding: 9px; background: none; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  font-size: 14px; cursor: pointer; color: #888;
+}
+.tab-btn.ativo { color: #007bff; border-bottom-color: #007bff; font-weight: bold; }
+.link-alt { text-align: center; font-size: 12px; color: #aaa; margin-top: 16px; }
+.link-alt a { color: #007bff; text-decoration: none; }
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #fff; border-radius: 10px; padding: 32px;
+  width: 100%; max-width: 480px; margin: 20px;
+}
+.partilha-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 6px; font-size: 13px;
+}
+.btn-remover-partilha {
+  background: transparent; border: 1px solid #c0392b; color: #c0392b;
+  border-radius: 4px; padding: 2px 8px; font-size: 12px; cursor: pointer;
+}
+.badge-partilhado {
+  font-size: 11px; background: #e9f2ff; color: #1a6fbf;
+  padding: 2px 7px; border-radius: 10px; margin-left: 6px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ECRÃ 0 – LOGIN -->
+<div id="ecraLogin" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;">
+  <div class="login-box">
+    <h1>Revisões Técnicas</h1>
+    <p class="login-sub">Portaria n.º 255/2023</p>
+    <div id="loginMsg" class="auth-msg"></div>
+    <div class="tabs-auth">
+      <button class="tab-btn ativo" id="tabLogin" onclick="mostrarTab('login')">Entrar</button>
+      <button class="tab-btn" id="tabRegisto" onclick="mostrarTab('registo')">Criar conta</button>
+    </div>
+    <div class="campo-grupo">
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="o.seu@email.com">
+    </div>
+    <div class="campo-grupo">
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="••••••••">
+    </div>
+    <button id="btnAuth" class="btn-criar" onclick="fazerAuth()" style="margin-top:8px;">Entrar</button>
+    <p class="link-alt" id="textoAlt">
+      Não tem conta? <a href="#" onclick="mostrarTab('registo')">Criar conta gratuita</a>
+    </p>
+  </div>
+</div>
+
+<!-- MODAL PARTILHA -->
+<div id="modalPartilha" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="color:#1f2a38;margin-bottom:6px;">Partilhar projeto</h3>
+    <p style="color:#666;font-size:13px;margin-bottom:20px;">Adicione o email de quem deve ter acesso.</p>
+    <div id="listaPartilhas" style="margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="email" id="partilharEmail" placeholder="email@exemplo.pt"
+        style="flex:1;padding:9px 12px;border:1px solid #ccc;border-radius:5px;font-size:14px;">
+      <select id="partilharPermissao" style="padding:9px;border:1px solid #ccc;border-radius:5px;font-size:13px;">
+        <option value="false">Só leitura</option>
+        <option value="true">Pode editar</option>
+      </select>
+    </div>
+    <button onclick="adicionarPartilha()"
+      style="width:100%;background:#007bff;color:#fff;border:none;border-radius:5px;padding:10px;font-size:14px;cursor:pointer;margin-bottom:10px;">
+      Adicionar acesso
+    </button>
+    <button onclick="fecharModal()"
+      style="width:100%;background:transparent;border:1px solid #ccc;border-radius:5px;padding:8px;font-size:13px;color:#666;cursor:pointer;">
+      Fechar
+    </button>
+  </div>
+</div>
+
+<!-- ECRÃ 1 – GESTÃO -->
+<div id="ecraGestao">
+  <div style="width:100%;max-width:560px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <span id="userEmailDisplay" style="font-size:13px;color:#666;"></span>
+    <button onclick="fazerLogout()" style="background:transparent;border:1px solid #ccc;border-radius:4px;padding:5px 12px;font-size:12px;color:#888;cursor:pointer;">Sair</button>
+  </div>
+  <h1>Revisões Técnicas de Projetos</h1>
+  <p class="subtitulo-gestao">Sistema de checklist e relatórios — Portaria n.º 255/2023</p>
+
+  <div class="card-novo">
+    <h3>➕ Novo Projeto de Revisão</h3>
+    <div class="campo-grupo">
+      <label>Nome do Projeto / Obra</label>
+      <input type="text" id="novoNome" placeholder="Ex: Requalificação EB Artur Gonçalves">
+    </div>
+    <div class="campo-grupo">
+      <label>Fase do Projeto</label>
+      <select id="novaFase">
+        <option value="programa_base">Programa Base</option>
+        <option value="estudo_previo">Estudo Prévio</option>
+        <option value="anteprojeto">Anteprojeto</option>
+        <option value="execucao" selected>Projeto de Execução</option>
+      </select>
+    </div>
+    <button class="btn-criar" onclick="criarProjeto()">Criar Projeto</button>
+  </div>
+
+  <div class="lista-projetos">
+    <h3>📁 Projetos Guardados</h3>
+    <div id="listaProjetos"></div>
+  </div>
+</div>
+
+<!-- ECRÃ 2 – TRABALHO -->
+<div id="ecraTrabalho">
+  <div class="menu">
+    <div class="menu-topo" onclick="abrirHomeProjeto()" title="Voltar à página do projeto">
+      <div class="proj-home-label">← Projeto</div>
+      <div class="proj-nome-ativo" id="menuNomeProjeto">—</div>
+      <div class="proj-fase-ativo" id="menuFaseProjeto">—</div>
+    </div>
+    <h3>Especialidades</h3>
+    <div id="menuEspecialidades">
+      <!-- gerado dinamicamente por renderMenuEspecialidades() -->
+    </div>
+    <hr>
+    <h3>Relatório</h3>
+    <button id="btnRelatorioFinal" onclick="abrirRelatorioFinal()">🧾 Relatório Final</button>
+    <hr>
+    <h3>Partilha</h3>
+    <button id="btnPartilhar" onclick="abrirPartilhar()">👥 Partilhar projeto</button>
+    <div class="menu-footer">
+      <button class="btn-voltar" onclick="guardarEVoltar()">💾 Guardar e fechar</button>
+      <button class="btn-voltar" onclick="voltarSemGuardar()">← Voltar sem guardar</button>
+    </div>
+  </div>
+  <div class="content" id="areaConteudo">
+    <p>Selecione uma especialidade no menu.</p>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════
+   CONSTANTES
+════════════════════════════════ */
+const SUPABASE_URL = 'https://wilrobmiqhwuaknigmvz.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'sb_publishable_6lZsVc03kFWTWY06IjRSoA_t6ZwK28N';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let _projetoCache = {};
+
+/* ════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════ */
+let projetoAtivo = null;
+let _userId   = null;
+let _userEmail = null;
+
+/* ════════════════════════════════
+   AUTH
+════════════════════════════════ */
+async function iniciarSessao() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    _userId    = session.user.id;
+    _userEmail = session.user.email;
+    iniciarApp();
+  } else {
+    mostrarEcra('login');
+  }
+}
+
+function iniciarApp() {
+  mostrarEcra('gestao');
+  const el = document.getElementById('userEmailDisplay');
+  if (el) el.textContent = _userEmail || '';
+  renderizarLista();
+}
+
+function mostrarEcra(ecra) {
+  document.getElementById('ecraLogin').style.display   = ecra==='login'   ? 'flex' : 'none';
+  document.getElementById('ecraGestao').style.display  = ecra==='gestao'  ? 'flex' : 'none';
+  document.getElementById('ecraTrabalho').style.display= ecra==='trabalho'? 'flex' : 'none';
+}
+
+function mostrarTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tabLogin').className   = 'tab-btn' + (isLogin  ? ' ativo' : '');
+  document.getElementById('tabRegisto').className = 'tab-btn' + (!isLogin ? ' ativo' : '');
+  document.getElementById('btnAuth').textContent  = isLogin ? 'Entrar' : 'Criar conta';
+  document.getElementById('textoAlt').style.display = isLogin ? 'block' : 'none';
+}
+
+async function fazerAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPassword').value;
+  const modo  = document.getElementById('tabLogin').classList.contains('ativo') ? 'login' : 'registo';
+  if (!email || !pass) { mostrarMsg('Preencha email e password.', 'erro'); return; }
+  let res;
+  if (modo === 'login') {
+    res = await sb.auth.signInWithPassword({ email, password: pass });
+  } else {
+    res = await sb.auth.signUp({ email, password: pass });
+  }
+  if (res.error) {
+    mostrarMsg(res.error.message, 'erro');
+  } else if (modo === 'registo' && !res.data.session) {
+    mostrarMsg('Conta criada! Verifique o seu email para confirmar.', 'ok');
+  } else {
+    _userId    = res.data.user.id;
+    _userEmail = res.data.user.email;
+    iniciarApp();
+  }
+}
+
+function mostrarMsg(texto, tipo) {
+  const el = document.getElementById('loginMsg');
+  el.textContent = texto;
+  el.className   = 'auth-msg ' + tipo;
+  el.style.display = 'block';
+}
+
+async function fazerLogout() {
+  await sb.auth.signOut();
+  _userId = null; _userEmail = null; projetoAtivo = null;
+  mostrarEcra('login');
+}
+
+/* ════════════════════════════════
+   SUPABASE — PROJETOS
+════════════════════════════════ */
+function carregarTodos() { return _projetoCache; }
+function guardarTodos(todos) { _projetoCache = todos; }
+
+function guardarProjetoAtivo() {
+  if (!projetoAtivo) return;
+  projetoAtivo.modificadoEm = new Date().toLocaleString("pt-PT");
+  _projetoCache[projetoAtivo.id] = projetoAtivo;
+  sb.from('projetos').upsert({
+    id:            projetoAtivo.id,
+    owner_id:      _userId,
+    nome:          projetoAtivo.nome,
+    fase:          projetoAtivo.fase,
+    criado_em:     projetoAtivo.criadoEm,
+    modificado_em: projetoAtivo.modificadoEm,
+    dados:         projetoAtivo
+  }, { onConflict: 'id' }).then(({ error }) => {
+    if (error) console.error('Erro ao guardar:', error);
+  });
+}
+
+function apagarProjeto(id) {
+  if (!confirm("Apagar este projeto definitivamente? Esta ação não pode ser revertida.")) return;
+  delete _projetoCache[id];
+  sb.from('projetos').delete().eq('id', id).eq('owner_id', _userId)
+    .then(({ error }) => { if (error) console.error(error); });
+  renderizarLista();
+}
+
+/* ════════════════════════════════
+   ECRÃ DE GESTÃO
+════════════════════════════════ */
+function renderizarLista() {
+  const cont = document.getElementById("listaProjetos");
+  cont.innerHTML = '<div class="sem-projetos">A carregar...</div>';
+
+  Promise.all([
+    sb.from('projetos').select('id, nome, fase, modificado_em, dados, owner_id'),
+    sb.from('partilhas').select('projeto_id, pode_editar, projetos(id, nome, fase, modificado_em, dados, owner_id)').eq('email', _userEmail || '')
+  ]).then(([{ data: proprios }, { data: partilhados }]) => {
+    const mapa = {};
+    (proprios || []).forEach(p => {
+      const d = p.dados || { id: p.id, nome: p.nome, fase: p.fase, modificadoEm: p.modificado_em };
+      d._isOwner = true; d._canEdit = true;
+      mapa[p.id] = d;
+    });
+    (partilhados || []).forEach(s => {
+      const p = s.projetos; if (!p) return;
+      const d = p.dados || { id: p.id, nome: p.nome, fase: p.fase, modificadoEm: p.modificado_em };
+      d._isOwner = false; d._canEdit = s.pode_editar;
+      if (!mapa[p.id]) mapa[p.id] = d;
+    });
+    _projetoCache = mapa;
+    const ids = Object.keys(mapa).sort((a,b) =>
+      (mapa[b].modificadoEm||"") > (mapa[a].modificadoEm||"") ? 1 : -1);
+    if (ids.length === 0) {
+      cont.innerHTML = '<div class="sem-projetos">Ainda não existem projetos guardados.</div>';
+      return;
+    }
+    cont.innerHTML = ids.map(id => {
+      const p = mapa[id];
+      const badge = p._isOwner === false ? '<span class="badge-partilhado">Partilhado</span>' : '';
+      return `<div class="projeto-item">
+        <div class="proj-info">
+          <div class="proj-nome">${p.nome}${badge}</div>
+          <div class="proj-meta">${FASES[p.fase]||p.fase} &nbsp;·&nbsp; ${p.modificadoEm||'—'}</div>
+        </div>
+        <div class="proj-acoes">
+          <button class="btn-abrir" onclick="abrirProjeto('${id}')">Abrir</button>
+          ${p._isOwner !== false ? `<button class="btn-apagar" onclick="apagarProjeto('${id}')">🗑</button>` : ''}
+        </div>
+      </div>`;
+    }).join("");
+  });
+}
+
+const FASES = {
+  programa_base: "Programa Base",
+  estudo_previo: "Estudo Prévio",
+  anteprojeto:   "Anteprojeto",
+  execucao:      "Projeto de Execução"
+};
+
+const TEXTOS_METODOLOGIA = {
+  execucao: `2. METODOLOGIA\n\nTomando em consideração algumas recomendações da APPC neste campo, consideram-se e definem-se dois níveis de intervenção de uma Revisão de Projeto:\n\n1) Nível 1 – Avaliação da conformidade mínima;\n2) Nível 2 – Verificação da qualidade do Projeto;\n\nTendo em conta o nível de intervenção, para a presente revisão consideramos o Nível 2 - Verificação da Qualidade de Projeto.\n\nNa fase presente deverá ser revisto todas as peças de cada projeto e a sua compatibilização de modo a mitigar possíveis complicações em obra.\n\n2.1. NÍVEL 2 – Verificação da Qualidade de Projeto\n\nA verificação da qualidade de um Projeto de Execução, numa fase em que este está já concluído, deverá ser feita por alguém que possua a sensibilidade de perceber que nesta fase é crucial averiguar se tecnicamente as diversas especialidades divergem para a mesma solução, e se todas as soluções estão devidamente dimensionadas e explicitas. Será nesta fase que se deve eliminar qualquer tipo de incompatibilidade entre especialidades, para posteriormente em fase de construção não exista este tipo de inconveniente.\n\nA fase de Projeto de Execução, visa desenvolver a solução do anteprojeto aprovado. Deve-se procurar evitar numa revisão de nível 2, ir além da avaliação se a solução técnica proposta é a que mais se adequa, tendo em conta todas as condicionantes existentes e conhecidas, pelo que ao invés de se colocar em causa a conceção geral do projeto, deve-se sim nesta fase propor uma reflexão e análise crítica sobre os pressupostos admitidos aquando da elaboração do projeto.\n\nNuma revisão de nível 2 deve-se ainda dar particular atenção à verificação dos mapas de trabalhos e quantidades (o rigor com que foram elaborados e definidos, o articulado e respetivo caderno de encargos e os custos unitários orçamentados), bem como o controlo de materiais descontinuados.\n\n2.1.1. Verificação das Peças Desenhadas\n\nConsiderando-se executadas as verificações típicas de uma revisão de nível 1, as quais incidem acima de tudo na verificação da existência destas peças, deve-se proceder então à concretização do programa preliminar e funcional. A equipa encarregada da revisão deve igualmente procurar confirmar a localização e implantação da obra, bem como, confirmar que os desenhos refletem o programa ou não.\n\n2.1.2. Verificação das Peças Escritas\n\nA equipa responsável pela revisão de um determinado Projeto, deve nesta fase focar-se na análise de toda a memória descritiva do Projeto. Tal reveste-se de especial importância atendendo a que é neste documento que se encontram definidas todas as soluções arquitetónicas e construtivas adotadas para o projeto e os materiais a utilizar na obra, bem como todos os condicionamentos existentes.\n\n2.1.3. Verificação das Medições\n\nDe uma revisão de nível 2 o que se espera relativamente a este campo, é desde logo uma verificação da adequabilidade e suficiência do articulado já existente para as peças escritas e desenhadas de definição geral do projeto.\n\n2.1.4. Verificação da Estimativa Orçamental\n\nA análise rigorosa do orçamento, verificando-se a numeração e o rigor dos diversos artigos do orçamento e a sua compatibilidade com os artigos das medições é outro dos passos obrigatórios a que a equipa de revisão terá de obedecer.\n\n`,
+  anteprojeto:   `2. METODOLOGIA\n\n[Texto normativo para a fase de Anteprojeto — a desenvolver]\n\n`,
+  estudo_previo: `2. METODOLOGIA\n\n[Texto normativo para a fase de Estudo Prévio — a desenvolver]\n\n`,
+  programa_base: `2. METODOLOGIA\n\n[Texto normativo para a fase de Programa Base — a desenvolver]\n\n`
+};
+
+
+
+function criarProjeto() {
+  const nome = document.getElementById("novoNome").value.trim();
+  const fase  = document.getElementById("novaFase").value;
+  if (!nome) { alert("Indique o nome do projeto."); return; }
+  const id  = "proj_" + Date.now();
+  const agora = new Date().toLocaleString("pt-PT");
+  projetoAtivo = {
+    id, nome, fase, criadoEm: agora, modificadoEm: agora,
+    introducao: { ambito: "", objetivo: "" },
+    conclusao: "",
+    especialidades: { acustica: { texto: "" }, estabilidade: { texto: "" } }
+  };
+  guardarProjetoAtivo();
+  document.getElementById("novoNome").value = "";
+  entrarNoTrabalho();
+}
+
+function abrirProjeto(id) {
+  const todos = carregarTodos();
+  projetoAtivo = todos[id];
+  if (!projetoAtivo) { alert("Projeto não encontrado."); return; }
+  if (!projetoAtivo.especialidades) projetoAtivo.especialidades = {};
+  if (!projetoAtivo.especialidades.acustica) projetoAtivo.especialidades.acustica = { texto: "" };
+  if (!projetoAtivo.especialidades.estabilidade) projetoAtivo.especialidades.estabilidade = { texto: "" };
+  if (!projetoAtivo.introducao) projetoAtivo.introducao = { ambito: "", objetivo: "" };
+  if (projetoAtivo.conclusao === undefined) projetoAtivo.conclusao = "";
+  entrarNoTrabalho();
+}
+
+/* Lista-mestra de todas as especialidades disponíveis */
+const TODAS_ESPECIALIDADES = [
+  { id: "acustica",      nome: "Acústica",      desc: "Condicionamento acústico" },
+  { id: "estabilidade",  nome: "Estabilidade",  desc: "Estruturas e fundações" },
+];
+
+function entrarNoTrabalho() {
+  mostrarEcra('trabalho');
+  document.getElementById("menuNomeProjeto").textContent = projetoAtivo.nome;
+  document.getElementById("menuFaseProjeto").textContent = FASES[projetoAtivo.fase] || projetoAtivo.fase;
+  // garante que especialidadesAtivas existe
+  if (!projetoAtivo.especialidadesAtivas) projetoAtivo.especialidadesAtivas = ["acustica"];
+  renderMenuEspecialidades();
+  abrirHomeProjeto();
+}
+
+function renderMenuEspecialidades() {
+  const ativas = projetoAtivo.especialidadesAtivas || [];
+  const cont = document.getElementById("menuEspecialidades");
+  if (!cont) return;
+  cont.innerHTML = ativas.map(id => {
+    const esp = TODAS_ESPECIALIDADES.find(e => e.id === id);
+    if (!esp) return "";
+    const texto = projetoAtivo.especialidades[id]?.texto || "";
+    const dot = texto ? "feito" : "";
+    return `<button id="btn_${id}" class="menu-esp-btn" onclick="abrirEspecialidade('${id}')">
+      ▶ ${esp.nome}
+      <span class="menu-esp-dot ${dot}"></span>
+    </button>`;
+  }).join("");
+}
+
+function abrirEspecialidade(id) {
+  if (id === "acustica")    abrirAcustica();
+  if (id === "estabilidade") abrirEstabilidade();
+}
+
+function abrirHomeProjeto() {
+  marcarAtivo(null);
+  const ativas = projetoAtivo.especialidadesAtivas || [];
+
+  const cards = TODAS_ESPECIALIDADES.map(esp => {
+    const sel = ativas.includes(esp.id) ? "selecionada" : "";
+    const check = sel ? "✓" : "";
+    const texto = projetoAtivo.especialidades[esp.id]?.texto || "";
+    let estadoClasse = "vazio", estadoTxt = "Não iniciada";
+    if (texto) { estadoClasse = "feito"; estadoTxt = "✓ Concluída"; }
+    return `<div class="esp-card ${sel}" id="card_${esp.id}" onclick="toggleEsp('${esp.id}')">
+      <div class="esp-check">${check}</div>
+      <div class="esp-info">
+        <div class="esp-nome">${esp.nome}</div>
+        <div class="esp-desc">${esp.desc}</div>
+        <div class="esp-estado ${estadoClasse}">${estadoTxt}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("areaConteudo").innerHTML = `
+    <div class="container">
+      <h1>${projetoAtivo.nome}</h1>
+      <p class="subtitulo-checklist">${FASES[projetoAtivo.fase]} &nbsp;·&nbsp; Criado em ${projetoAtivo.criadoEm}</p>
+
+      <h2 style="margin-top:28px;">Especialidades a rever</h2>
+      <p style="color:#666;font-size:13px;margin-top:8px;">
+        Selecione as especialidades que fazem parte desta revisão.
+        As selecionadas aparecem no menu lateral e são incluídas no Relatório Final.
+      </p>
+
+      <div class="home-grid">${cards}</div>
+
+      <button class="btn-confirmar-esp" onclick="confirmarEspecialidades()">
+        Confirmar seleção e atualizar menu
+      </button>
+
+      <div id="homeMsg" style="margin-top:12px;font-size:13px;color:#28a745;display:none;">
+        ✓ Menu atualizado. Pode agora selecionar uma especialidade no menu lateral.
+      </div>
+    </div>`;
+}
+
+function toggleEsp(id) {
+  const card = document.getElementById("card_" + id);
+  const check = card.querySelector(".esp-check");
+  const ativas = projetoAtivo.especialidadesAtivas || [];
+  if (card.classList.contains("selecionada")) {
+    card.classList.remove("selecionada");
+    check.textContent = "";
+    projetoAtivo.especialidadesAtivas = ativas.filter(e => e !== id);
+  } else {
+    card.classList.add("selecionada");
+    check.textContent = "✓";
+    if (!ativas.includes(id)) projetoAtivo.especialidadesAtivas = [...ativas, id];
+    // garante que a estrutura de dados existe
+    if (!projetoAtivo.especialidades[id]) projetoAtivo.especialidades[id] = { texto: "" };
+  }
+}
+
+function confirmarEspecialidades() {
+  guardarProjetoAtivo();
+  renderMenuEspecialidades();
+  const msg = document.getElementById("homeMsg");
+  if (msg) { msg.style.display = "block"; setTimeout(() => msg.style.display = "none", 3000); }
+}
+
+function guardarEVoltar() {
+  if (document.querySelector('input[name="ac_gabinete"]'))
+    projetoAtivo.especialidades.acustica.texto = ac_gerarTexto();
+  guardarProjetoAtivo();
+  voltarParaGestao();
+}
+function voltarSemGuardar() {
+  if (confirm("Fechar sem guardar as alterações recentes?")) voltarParaGestao();
+}
+function voltarParaGestao() {
+  projetoAtivo = null;
+  mostrarEcra('gestao');
+  renderizarLista();
+}
+
+/* ════════════════════════════════
+   UTILITÁRIOS
+════════════════════════════════ */
+function marcarAtivo(id) {
+  document.querySelectorAll(".menu button").forEach(b => b.classList.remove("ativo"));
+  const btn = document.getElementById(id);
+  if (btn) btn.classList.add("ativo");
+}
+function r(name) { return document.querySelector(`input[name="${name}"]:checked`)?.value; }
+function v(id)   { return (document.getElementById(id)?.value || "").trim(); }
+function badge(id) {
+  const b = document.getElementById(id);
+  if (b) { b.style.opacity = "1"; setTimeout(() => b.style.opacity = "0", 2500); }
+}
+
+/* ════════════════════════════════
+   MÓDULO ACÚSTICA
+════════════════════════════════ */
+function abrirAcustica() {
+  marcarAtivo("btnAcustica");
+  document.getElementById("areaConteudo").innerHTML = `
+<div class="container">
+<h1>Condicionamento Acústico</h1>
+<p class="subtitulo-checklist">Verificação da Documentação — ${FASES[projetoAtivo.fase]}</p>
+
+<h2>2. Dados do Projetista</h2>
+<div class="box-principal"><strong>Identificação do Gabinete de Projeto</strong><br><br>
+  <input type="radio" name="ac_gabinete" value="sim" onchange="ac_toggleGabinete()"> Sim &nbsp;
+  <input type="radio" name="ac_gabinete" value="nao" onchange="ac_toggleGabinete()"> Não
+  <div class="conditional" id="ac_gabineteFields" style="display:none;"><br>Nome do Gabinete:<br>
+    <input type="text" id="ac_nomeGabinete" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;">
+  </div>
+</div>
+<div class="box-principal"><strong>Identificação do Projetista Responsável</strong><br><br>
+  <input type="radio" name="ac_projetista" value="sim" onchange="ac_toggleProjetista()"> Sim &nbsp;
+  <input type="radio" name="ac_projetista" value="nao" onchange="ac_toggleProjetista()"> Não
+  <div class="conditional" id="ac_projetistaFields" style="display:none;"><br>
+    Nome:<br><input type="text" id="ac_nomeProjetista" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;"><br><br>
+    Associação:<br><input type="text" id="ac_associacao" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;"><br><br>
+    N.º de Inscrição:<br><input type="text" id="ac_numeroInscricao" style="width:30%;padding:6px;border:1px solid #ccc;border-radius:4px;">
+  </div>
+</div>
+
+<h2>Peças Escritas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças escritas?</strong><br><br>
+  <input type="radio" name="ac_pecasEscritas" value="sim" onchange="ac_toggleEscritas()"> Sim &nbsp;
+  <input type="radio" name="ac_pecasEscritas" value="nao" onchange="ac_toggleEscritas()"> Não
+  <div class="conditional" id="ac_pecasEscritasFields" style="display:none;"><br>Indique as peças (1 por linha):<br>
+    <textarea id="ac_listaEscritas" rows="5"></textarea>
+  </div>
+</div>
+
+<h2>Peças Desenhadas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças desenhadas?</strong><br><br>
+  <input type="radio" name="ac_pecasDesenhadas" value="sim" onchange="ac_toggleDesenhadas()"> Sim &nbsp;
+  <input type="radio" name="ac_pecasDesenhadas" value="nao" onchange="ac_toggleDesenhadas()"> Não
+  <div class="conditional" id="ac_pecasDesenhadasFields" style="display:none;"><br>Indique as peças (1 por linha):<br>
+    <textarea id="ac_listaDesenhadas" rows="5"></textarea>
+  </div>
+</div>
+
+<h2>4. Termo de Responsabilidade</h2>
+<div class="box-principal"><strong>Foi apresentado o Termo de Responsabilidade?</strong><br><br>
+  <input type="radio" name="ac_termoResp" value="sim" onchange="ac_toggleTermo()"> Sim &nbsp;
+  <input type="radio" name="ac_termoResp" value="nao" onchange="ac_toggleTermo()"> Não
+</div>
+<div id="ac_grupoTermo" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o projetista responsável?</strong><br>
+    <input type="radio" name="ac_termo_identificacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_identificacao" value="nao"> Não</div>
+  <div class="section"><strong>Identifica o projeto a que se refere?</strong><br>
+    <input type="radio" name="ac_termo_projeto" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_projeto" value="nao"> Não</div>
+  <div class="section"><strong>Contém declaração expressa de responsabilidade?</strong><br>
+    <input type="radio" name="ac_termo_responsabilidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_responsabilidade" value="nao"> Não</div>
+  <div class="section"><strong>Encontra-se assinado?</strong><br>
+    <input type="radio" name="ac_termo_assinatura" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_assinatura" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta data?</strong><br>
+    <input type="radio" name="ac_termo_data" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_data" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="ac_termo_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_termo_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>5. Declaração da Associação Profissional</h2>
+<div class="box-principal"><strong>Foi apresentada Declaração da Associação Profissional?</strong><br><br>
+  <input type="radio" name="ac_declaracaoAssoc" value="sim" onchange="ac_toggleAssociacao()"> Sim &nbsp;
+  <input type="radio" name="ac_declaracaoAssoc" value="nao" onchange="ac_toggleAssociacao()"> Não
+</div>
+<div id="ac_grupoAssociacao" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o técnico?</strong><br>
+    <input type="radio" name="ac_assoc_tecnico" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_assoc_tecnico" value="nao"> Não</div>
+  <div class="section"><strong>Indica o número de inscrição?</strong><br>
+    <input type="radio" name="ac_assoc_numero" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_assoc_numero" value="nao"> Não</div>
+  <div class="section"><strong>Identifica a associação profissional?</strong><br>
+    <input type="radio" name="ac_assoc_entidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_assoc_entidade" value="nao"> Não</div>
+  <div class="section"><strong>Comprova situação ativa do técnico?</strong><br>
+    <input type="radio" name="ac_assoc_valido" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_assoc_valido" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="ac_assoc_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_assoc_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>6. Seguro de Responsabilidade Civil</h2>
+<div class="box-principal"><strong>Foi apresentada declaração de seguro de responsabilidade civil?</strong><br><br>
+  <input type="radio" name="ac_seguroRC" value="sim" onchange="ac_toggleSeguro()"> Sim &nbsp;
+  <input type="radio" name="ac_seguroRC" value="nao" onchange="ac_toggleSeguro()"> Não
+</div>
+<div id="ac_grupoSeguro" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o técnico segurado?</strong><br>
+    <input type="radio" name="ac_seguro_tecnico" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_seguro_tecnico" value="nao"> Não</div>
+  <div class="section"><strong>Indica o número da apólice?</strong><br>
+    <input type="radio" name="ac_seguro_apolice" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_seguro_apolice" value="nao"> Não</div>
+  <div class="section"><strong>Indica o capital seguro?</strong><br>
+    <input type="radio" name="ac_seguro_capital" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_seguro_capital" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta validade em vigor?</strong><br>
+    <input type="radio" name="ac_seguro_validade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_seguro_validade" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="ac_seguro_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_seguro_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>7. Memória Descritiva</h2>
+<div class="box-principal"><strong>Foi apresentada Memória Descritiva e Justificativa?</strong><br><br>
+  <input type="radio" name="ac_md_existencia" value="sim" onchange="ac_toggleMemoria()"> Sim &nbsp;
+  <input type="radio" name="ac_md_existencia" value="nao" onchange="ac_toggleMemoria()"> Não
+</div>
+<div id="ac_grupoMemoria" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>7.2 Identificação e descrição geral da obra</strong><br>
+    <input type="radio" name="ac_md_descricao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_descricao" value="nao"> Não</div>
+  <div class="section"><strong>7.3 Justificação da implantação (quando aplicável)</strong><br>
+    <input type="radio" name="ac_md_implantacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_implantacao" value="nao"> Não &nbsp;
+    <input type="radio" name="ac_md_implantacao" value="na"> N/A</div>
+  <div class="section"><strong>7.4 Descrição genérica da solução adotada</strong><br>
+    <input type="radio" name="ac_md_solucao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_solucao" value="nao"> Não</div>
+  <div class="section"><strong>7.5 Identificação de materiais, sistemas e equipamentos</strong><br>
+    <input type="radio" name="ac_md_materiais" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_materiais" value="nao"> Não</div>
+  <div class="section"><strong>7.6 Análise prospetiva de desempenho acústico</strong><br>
+    <input type="radio" name="ac_md_desempenho" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_desempenho" value="nao"> Não</div>
+  <div class="section"><strong>7.7 Enquadramento no RGR</strong><br>
+    <input type="radio" name="ac_md_rgr" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_rgr" value="nao"> Não</div>
+  <div class="section"><strong>7.8 Tipologia e uso para efeitos do RRAE</strong><br>
+    <input type="radio" name="ac_md_tipologia" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_tipologia" value="nao"> Não</div>
+  <div class="section"><strong>7.9 Requisitos acústicos aplicáveis (RRAE)</strong><br>
+    <input type="radio" name="ac_md_requisitos" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_requisitos" value="nao"> Não</div>
+  <div class="section"><strong>7.10 Articulação com as restantes peças do projeto</strong><br>
+    <input type="radio" name="ac_md_articulacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_articulacao" value="nao"> Não</div>
+  <div class="section"><strong>7.11 Conformidade formal da Memória Descritiva</strong><br>
+    <input type="radio" name="ac_md_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_md_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>8. Cálculos</h2>
+<div class="box-principal"><strong>Foram apresentados cálculos?</strong><br><br>
+  <input type="radio" name="ac_calc_existencia" value="sim" onchange="ac_toggleCalculos()"> Sim &nbsp;
+  <input type="radio" name="ac_calc_existencia" value="nao" onchange="ac_toggleCalculos()"> Não
+</div>
+<div id="ac_grupoCalculos" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Apresentados de forma clara e organizada?</strong><br>
+    <input type="radio" name="ac_calc_clareza" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_calc_clareza" value="nao"> Não</div>
+  <div class="section"><strong>Permitem justificar as soluções adotadas?</strong><br>
+    <input type="radio" name="ac_calc_justificacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_calc_justificacao" value="nao"> Não</div>
+  <div class="section"><strong>Identificam os parâmetros acústicos relevantes?</strong><br>
+    <input type="radio" name="ac_calc_parametros" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_calc_parametros" value="nao"> Não</div>
+  <div class="section"><strong>Enquadramento nos requisitos do RRAE?</strong><br>
+    <input type="radio" name="ac_calc_rrae" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_calc_rrae" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com a Memória Descritiva?</strong><br>
+    <input type="radio" name="ac_calc_coerencia" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_calc_coerencia" value="nao"> Não</div>
+</div>
+
+<h2>9. Condições Técnicas do Caderno de Encargos</h2>
+<div class="box-principal"><strong>Foram apresentadas Condições Técnicas?</strong><br><br>
+  <input type="radio" name="ac_ct_existencia" value="sim" onchange="ac_toggleCT()"> Sim &nbsp;
+  <input type="radio" name="ac_ct_existencia" value="nao" onchange="ac_toggleCT()"> Não
+</div>
+<div id="ac_grupoCT" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Definem condições de execução dos trabalhos?</strong><br>
+    <input type="radio" name="ac_ct_execucao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_execucao" value="nao"> Não</div>
+  <div class="section"><strong>Identificam características técnicas dos materiais?</strong><br>
+    <input type="radio" name="ac_ct_materiais" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_materiais" value="nao"> Não</div>
+  <div class="section"><strong>Identificam sistemas e soluções construtivas?</strong><br>
+    <input type="radio" name="ac_ct_sistemas" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_sistemas" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com a Memória Descritiva?</strong><br>
+    <input type="radio" name="ac_ct_coerencia_md" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_coerencia_md" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as peças desenhadas?</strong><br>
+    <input type="radio" name="ac_ct_coerencia_pe" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_coerencia_pe" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="ac_ct_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_ct_estrutura" value="nao"> Não</div>
+</div>
+
+<h2>10. Peças Desenhadas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças desenhadas?</strong><br><br>
+  <input type="radio" name="ac_pd_existencia" value="sim" onchange="ac_togglePD()"> Sim &nbsp;
+  <input type="radio" name="ac_pd_existencia" value="nao" onchange="ac_togglePD()"> Não
+</div>
+<div id="ac_grupoPD" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Informação suficiente para compreensão do projeto?</strong><br>
+    <input type="radio" name="ac_pd_compreensao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_compreensao" value="nao"> Não</div>
+  <div class="section"><strong>Permitem a implantação da obra?</strong><br>
+    <input type="radio" name="ac_pd_implantacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_implantacao" value="nao"> Não</div>
+  <div class="section"><strong>Incluem pormenores necessários à execução?</strong><br>
+    <input type="radio" name="ac_pd_pormenores" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_pormenores" value="nao"> Não</div>
+  <div class="section"><strong>Contêm indicações numéricas e cotas essenciais?</strong><br>
+    <input type="radio" name="ac_pd_cotas" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_cotas" value="nao"> Não</div>
+  <div class="section"><strong>Apresentadas em escala adequada?</strong><br>
+    <input type="radio" name="ac_pd_escala" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_escala" value="nao"> Não</div>
+  <div class="section"><strong>Identificam as intervenções de condicionamento acústico?</strong><br>
+    <input type="radio" name="ac_pd_acustica" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_acustica" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com a Memória Descritiva?</strong><br>
+    <input type="radio" name="ac_pd_coerencia_md" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_coerencia_md" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com os cálculos?</strong><br>
+    <input type="radio" name="ac_pd_coerencia_calc" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_pd_coerencia_calc" value="nao"> Não</div>
+</div>
+
+<h2>11. Mapa de Quantidades de Trabalhos</h2>
+<div class="box-principal"><strong>Foi apresentado Mapa de Quantidades?</strong><br><br>
+  <input type="radio" name="ac_mq_existencia" value="sim" onchange="ac_toggleMQ()"> Sim &nbsp;
+  <input type="radio" name="ac_mq_existencia" value="nao" onchange="ac_toggleMQ()"> Não
+</div>
+<div id="ac_grupoMQ" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica a natureza dos trabalhos?</strong><br>
+    <input type="radio" name="ac_mq_natureza" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_natureza" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta quantificação dos trabalhos?</strong><br>
+    <input type="radio" name="ac_mq_quantidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_quantidades" value="nao"> Não</div>
+  <div class="section"><strong>Unidades de medição adequadas?</strong><br>
+    <input type="radio" name="ac_mq_unidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_unidades" value="nao"> Não</div>
+  <div class="section"><strong>Permite compreender os trabalhos necessários?</strong><br>
+    <input type="radio" name="ac_mq_compreensao" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_compreensao" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as peças desenhadas?</strong><br>
+    <input type="radio" name="ac_mq_coerencia_pd" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_coerencia_pd" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as Condições Técnicas?</strong><br>
+    <input type="radio" name="ac_mq_coerencia_ct" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_coerencia_ct" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="ac_mq_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_mq_estrutura" value="nao"> Não</div>
+</div>
+
+<h2>12. Estimativa Orçamental</h2>
+<div class="box-principal"><strong>Foi apresentada Estimativa Orçamental?</strong><br><br>
+  <input type="radio" name="ac_orc_existencia" value="sim" onchange="ac_toggleORC()"> Sim &nbsp;
+  <input type="radio" name="ac_orc_existencia" value="nao" onchange="ac_toggleORC()"> Não
+</div>
+<div id="ac_grupoORC" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Baseia-se nas quantidades de trabalhos apresentadas?</strong><br>
+    <input type="radio" name="ac_orc_quantidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_quantidades" value="nao"> Não</div>
+  <div class="section"><strong>Identifica os diferentes trabalhos a executar?</strong><br>
+    <input type="radio" name="ac_orc_trabalhos" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_trabalhos" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta custos associados aos trabalhos?</strong><br>
+    <input type="radio" name="ac_orc_custos" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_custos" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="ac_orc_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_estrutura" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com o Mapa de Quantidades?</strong><br>
+    <input type="radio" name="ac_orc_coerencia_mq" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_coerencia_mq" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as Condições Técnicas?</strong><br>
+    <input type="radio" name="ac_orc_coerencia_ct" value="sim"> Sim &nbsp;
+    <input type="radio" name="ac_orc_coerencia_ct" value="nao"> Não</div>
+</div>
+
+<hr style="margin-top:30px;">
+<button class="btn-preview" onclick="ac_guardarEPreview()">
+  💾 Guardar e fazer preview
+  <span class="badge-guardado" id="ac_badge">✓ Guardado no projeto</span>
+</button>
+<h2>Texto gerado – Acústica</h2>
+<textarea id="ac_relatorioPreview" rows="28" readonly></textarea>
+</div>`;
+}
+
+/* Toggles */
+function ac_toggleGabinete()   { document.getElementById("ac_gabineteFields").style.display    = r("ac_gabinete")==="sim"?"block":"none"; }
+function ac_toggleProjetista() { document.getElementById("ac_projetistaFields").style.display  = r("ac_projetista")==="sim"?"block":"none"; }
+function ac_toggleEscritas()   { document.getElementById("ac_pecasEscritasFields").style.display= r("ac_pecasEscritas")==="sim"?"block":"none"; }
+function ac_toggleDesenhadas() { document.getElementById("ac_pecasDesenhadasFields").style.display=r("ac_pecasDesenhadas")==="sim"?"block":"none"; }
+function ac_toggleTermo()      { document.getElementById("ac_grupoTermo").style.display        = r("ac_termoResp")==="sim"?"block":"none"; }
+function ac_toggleAssociacao() { document.getElementById("ac_grupoAssociacao").style.display   = r("ac_declaracaoAssoc")==="sim"?"block":"none"; }
+function ac_toggleSeguro()     { document.getElementById("ac_grupoSeguro").style.display       = r("ac_seguroRC")==="sim"?"block":"none"; }
+function ac_toggleMemoria()    { document.getElementById("ac_grupoMemoria").style.display      = r("ac_md_existencia")==="sim"?"block":"none"; }
+function ac_toggleCalculos()   { document.getElementById("ac_grupoCalculos").style.display     = r("ac_calc_existencia")==="sim"?"block":"none"; }
+function ac_toggleCT()         { document.getElementById("ac_grupoCT").style.display           = r("ac_ct_existencia")==="sim"?"block":"none"; }
+function ac_togglePD()         { document.getElementById("ac_grupoPD").style.display           = r("ac_pd_existencia")==="sim"?"block":"none"; }
+function ac_toggleMQ()         { document.getElementById("ac_grupoMQ").style.display           = r("ac_mq_existencia")==="sim"?"block":"none"; }
+function ac_toggleORC()        { document.getElementById("ac_grupoORC").style.display          = r("ac_orc_existencia")==="sim"?"block":"none"; }
+
+function ac_gerarTexto() {
+  let t = "";
+  t += "1. Considerações Genéricas\n\nDe acordo com o Artigo 7.º da Portaria n.º 255/2023, de 07 de agosto, um Projeto de Execução deverá ser constituído pelos seguintes elementos:\n\n";
+  t += "- Memória descritiva e justificativa;\n- Cálculos relativos às diferentes partes da obra;\n- Medições e mapas de quantidade de trabalhos;\n- Orçamento baseado nas quantidades e qualidades de trabalho;\n- Peças desenhadas;\n- Condições técnicas, gerais e especiais, do caderno de encargos.\n\n";
+  t += "2. Introdução\n\nDados do Projetista:\n\n";
+  t += r("ac_gabinete")==="sim" ? `- Gabinete de Projeto: ${v("ac_nomeGabinete")};\n` : "- Gabinete de Projeto: Não foi possível identificar os dados do gabinete de projeto.\n";
+  t += r("ac_projetista")==="sim" ? `- Projetista Responsável: ${v("ac_nomeProjetista")}, inscrito na ${v("ac_associacao")} com o n.º ${v("ac_numeroInscricao")}.\n\n` : "- Projetista Responsável: Os dados do projetista responsável não se encontram identificáveis.\n\n";
+  t += "Peças Escritas:\n\n";
+  if (r("ac_pecasEscritas")==="sim") { v("ac_listaEscritas").split("\n").forEach(l=>{if(l.trim())t+=`- ${l.trim()};\n`;}); t+="\n"; }
+  else t += "- Não foram anexadas peças escritas.\n\n";
+  t += "Peças Desenhadas:\n\n";
+  if (r("ac_pecasDesenhadas")==="sim") { v("ac_listaDesenhadas").split("\n").forEach(l=>{if(l.trim())t+=`- ${l.trim()}\n`;}); t+="\n"; }
+  else t += "- Não foram anexadas peças desenhadas.\n\n";
+  t += "3. Legislação aplicável\n\n- Regulamento Geral do Ruído (RGR), Decreto-Lei n.º 9/2007 de 17 de janeiro;\n- Regulamento dos Requisitos Acústicos dos Edifícios (RRAE), Decreto-Lei n.º 129/2002 com alterações pelo Decreto-Lei n.º 95/2019.\n\n";
+
+  const S = (cond, sim, nao) => cond==="sim" ? sim+"\n" : nao+"\n";
+
+  t += "4. Termo de Responsabilidade\n\n";
+  if (r("ac_termoResp")!=="sim") t += "Não foi apresentado Termo de Responsabilidade, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_termo_identificacao"),"O documento identifica o projetista responsável.","O documento não identifica de forma clara o projetista responsável.");
+    t += S(r("ac_termo_projeto"),"O documento identifica o projeto a que se refere.","O documento não identifica de forma clara o projeto a que se refere.");
+    t += S(r("ac_termo_responsabilidade"),"O documento contém declaração expressa de responsabilidade técnica.","O documento não contém declaração expressa de responsabilidade técnica.");
+    t += S(r("ac_termo_assinatura"),"O documento encontra-se devidamente assinado.","O documento não se encontra devidamente assinado.");
+    t += S(r("ac_termo_data"),"O documento apresenta data de emissão.","O documento não apresenta data de emissão.");
+    t += S(r("ac_termo_conformidade"),"Em termos formais, o Termo cumpre os requisitos mínimos exigidos.","Em termos formais, o Termo não cumpre os requisitos mínimos exigidos."); t+="\n";
+  }
+
+  t += "5. Declaração da Associação Profissional\n\n";
+  if (r("ac_declaracaoAssoc")!=="sim") t += "Não foi apresentada Declaração da Associação Profissional, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_assoc_tecnico"),"A declaração identifica o técnico.","A declaração não identifica de forma clara o técnico.");
+    t += S(r("ac_assoc_numero"),"A declaração indica o número de inscrição do técnico.","A declaração não indica de forma clara o número de inscrição.");
+    t += S(r("ac_assoc_entidade"),"A declaração identifica a associação profissional.","A declaração não identifica de forma clara a associação profissional.");
+    t += S(r("ac_assoc_valido"),"A declaração comprova a situação ativa do técnico.","A declaração não comprova a situação ativa do técnico.");
+    t += S(r("ac_assoc_conformidade"),"Em termos formais, a Declaração cumpre os requisitos mínimos.","Em termos formais, a Declaração não cumpre os requisitos mínimos."); t+="\n";
+  }
+
+  t += "6. Seguro de Responsabilidade Civil\n\n";
+  if (r("ac_seguroRC")!=="sim") t += "Não foi apresentada declaração de seguro de responsabilidade civil, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_seguro_tecnico"),"A declaração identifica o técnico segurado.","A declaração não identifica de forma clara o técnico segurado.");
+    t += S(r("ac_seguro_apolice"),"A declaração indica o número da apólice.","A declaração não indica de forma clara o número da apólice.");
+    t += S(r("ac_seguro_capital"),"A declaração indica o capital seguro.","A declaração não indica de forma clara o capital seguro.");
+    t += S(r("ac_seguro_validade"),"A declaração apresenta validade em vigor.","A declaração não apresenta validade em vigor.");
+    t += S(r("ac_seguro_conformidade"),"Em termos formais, o seguro cumpre os requisitos mínimos.","Em termos formais, o seguro não cumpre os requisitos mínimos."); t+="\n";
+  }
+
+  t += "7. Memória Descritiva\n\n";
+  if (r("ac_md_existencia")!=="sim") t += "Não foi apresentada Memória Descritiva e Justificativa, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_md_descricao"),"Apresenta identificação e descrição geral da obra.","Não apresenta identificação e descrição geral da obra.");
+    const impl=r("ac_md_implantacao"); t+=(impl==="sim"?"Inclui justificação da implantação da obra.\n":impl==="nao"?"Não inclui justificação da implantação da obra.\n":"A justificação da implantação não é aplicável.\n");
+    t += S(r("ac_md_solucao"),"Apresenta descrição genérica da solução adotada.","Não apresenta descrição genérica da solução adotada.");
+    t += S(r("ac_md_materiais"),"Identifica materiais, sistemas e equipamentos.","Não identifica materiais, sistemas e equipamentos.");
+    t += S(r("ac_md_desempenho"),"Inclui análise prospetiva de desempenho acústico.","Não inclui análise prospetiva de desempenho acústico.");
+    t += S(r("ac_md_rgr"),"Enquadra o projeto no âmbito do RGR.","Não enquadra o projeto no âmbito do RGR.");
+    t += S(r("ac_md_tipologia"),"Identifica a tipologia do edifício para efeitos do RRAE.","Não identifica a tipologia do edifício para efeitos do RRAE.");
+    t += S(r("ac_md_requisitos"),"Identifica os requisitos acústicos aplicáveis.","Não identifica os requisitos acústicos aplicáveis.");
+    t += S(r("ac_md_articulacao"),"Apresenta articulação com as restantes peças do projeto.","Não apresenta articulação com as restantes peças do projeto.");
+    t += S(r("ac_md_conformidade"),"Em termos formais, a Memória Descritiva cumpre os requisitos mínimos.","Em termos formais, a Memória Descritiva não cumpre os requisitos mínimos."); t+="\n";
+  }
+
+  t += "8. Cálculos\n\n";
+  if (r("ac_calc_existencia")!=="sim") t += "Não foram apresentados cálculos, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_calc_clareza"),"Os cálculos encontram-se apresentados de forma clara e organizada.","Os cálculos não se encontram apresentados de forma clara e organizada.");
+    t += S(r("ac_calc_justificacao"),"Os cálculos permitem justificar as soluções adotadas.","Os cálculos não permitem justificar de forma adequada as soluções adotadas.");
+    t += S(r("ac_calc_parametros"),"Os cálculos identificam os parâmetros acústicos relevantes.","Os cálculos não identificam claramente os parâmetros acústicos relevantes.");
+    t += S(r("ac_calc_rrae"),"Os cálculos apresentam enquadramento nos requisitos do RRAE.","Os cálculos não apresentam enquadramento nos requisitos do RRAE.");
+    t += S(r("ac_calc_coerencia"),"Os cálculos apresentam coerência com a Memória Descritiva.","Os cálculos não apresentam coerência com a Memória Descritiva."); t+="\n";
+  }
+
+  t += "9. Condições Técnicas do Caderno de Encargos\n\n";
+  if (r("ac_ct_existencia")!=="sim") t += "Não foram apresentadas Condições Técnicas, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_ct_execucao"),"As Condições Técnicas definem as condições de execução dos trabalhos.","As Condições Técnicas não definem de forma clara as condições de execução.");
+    t += S(r("ac_ct_materiais"),"Identificam as características técnicas dos materiais.","Não identificam claramente as características técnicas dos materiais.");
+    t += S(r("ac_ct_sistemas"),"Identificam os sistemas e soluções construtivas previstas.","Não identificam de forma clara os sistemas e soluções construtivas.");
+    t += S(r("ac_ct_coerencia_md"),"Apresentam coerência com a Memória Descritiva.","Não apresentam coerência com a Memória Descritiva.");
+    t += S(r("ac_ct_coerencia_pe"),"Apresentam coerência com as peças desenhadas.","Não apresentam coerência com as peças desenhadas.");
+    t += S(r("ac_ct_estrutura"),"Apresentam estrutura clara e organizada.","Não apresentam estrutura clara ou organizada."); t+="\n";
+  }
+
+  t += "10. Peças Desenhadas\n\n";
+  if (r("ac_pd_existencia")!=="sim") t += "Não foram apresentadas peças desenhadas, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_pd_compreensao"),"As peças desenhadas apresentam informação suficiente para a compreensão do projeto.","As peças desenhadas não apresentam informação suficiente para a compreensão do projeto.");
+    t += S(r("ac_pd_implantacao"),"Permitem a implantação da obra.","Não permitem a implantação da obra.");
+    t += S(r("ac_pd_pormenores"),"Incluem os pormenores necessários à execução da obra.","Não incluem os pormenores necessários à execução da obra.");
+    t += S(r("ac_pd_cotas"),"Contêm as indicações numéricas e cotas essenciais.","Não contêm as indicações numéricas e cotas essenciais.");
+    t += S(r("ac_pd_escala"),"Encontram-se apresentadas em escala adequada.","Não se encontram apresentadas em escala adequada.");
+    t += S(r("ac_pd_acustica"),"Identificam as intervenções de condicionamento acústico.","Não identificam de forma clara as intervenções de condicionamento acústico.");
+    t += S(r("ac_pd_coerencia_md"),"Apresentam coerência com a Memória Descritiva.","Não apresentam coerência com a Memória Descritiva.");
+    t += S(r("ac_pd_coerencia_calc"),"Apresentam coerência com os cálculos apresentados.","Não apresentam coerência com os cálculos apresentados."); t+="\n";
+  }
+
+  t += "11. Mapa de Quantidades de Trabalhos\n\n";
+  if (r("ac_mq_existencia")!=="sim") t += "Não foi apresentado Mapa de Quantidades de Trabalhos, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_mq_natureza"),"O mapa identifica a natureza dos trabalhos a executar.","O mapa não identifica de forma clara a natureza dos trabalhos a executar.");
+    t += S(r("ac_mq_quantidades"),"Apresenta quantificação dos trabalhos a executar.","Não apresenta quantificação adequada dos trabalhos.");
+    t += S(r("ac_mq_unidades"),"Apresenta unidades de medição adequadas.","Não apresenta unidades de medição adequadas.");
+    t += S(r("ac_mq_compreensao"),"Permite compreender os trabalhos necessários à execução da obra.","Não permite compreender claramente os trabalhos necessários.");
+    t += S(r("ac_mq_coerencia_pd"),"Apresenta coerência com as peças desenhadas.","Não apresenta coerência com as peças desenhadas.");
+    t += S(r("ac_mq_coerencia_ct"),"Apresenta coerência com as Condições Técnicas.","Não apresenta coerência com as Condições Técnicas.");
+    t += S(r("ac_mq_estrutura"),"Apresenta estrutura clara e organizada.","Não apresenta estrutura clara ou organizada."); t+="\n";
+  }
+
+  t += "12. Estimativa Orçamental\n\n";
+  if (r("ac_orc_existencia")!=="sim") t += "Não foi apresentada estimativa orçamental, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("ac_orc_quantidades"),"A estimativa baseia-se nas quantidades de trabalhos apresentadas.","A estimativa não se baseia de forma clara nas quantidades de trabalhos apresentadas.");
+    t += S(r("ac_orc_trabalhos"),"Identifica os diferentes trabalhos a executar.","Não identifica de forma clara os diferentes trabalhos a executar.");
+    t += S(r("ac_orc_custos"),"Apresenta custos associados aos trabalhos identificados.","Não apresenta custos associados de forma clara aos trabalhos identificados.");
+    t += S(r("ac_orc_estrutura"),"Apresenta estrutura clara e organizada.","Não apresenta estrutura clara ou organizada.");
+    t += S(r("ac_orc_coerencia_mq"),"Apresenta coerência com o Mapa de Quantidades.","Não apresenta coerência com o Mapa de Quantidades.");
+    t += S(r("ac_orc_coerencia_ct"),"Apresenta coerência com as Condições Técnicas.","Não apresenta coerência com as Condições Técnicas."); t+="\n";
+  }
+
+  return t;
+}
+
+function ac_guardarEPreview() {
+  const texto = ac_gerarTexto();
+  projetoAtivo.especialidades.acustica.texto = texto;
+  guardarProjetoAtivo();
+  const el = document.getElementById("ac_relatorioPreview");
+  if (el) el.value = texto;
+  badge("ac_badge");
+}
+
+/* ════════════════════════════════
+   SUGESTÃO DE CONCLUSÃO
+════════════════════════════════ */
+function gerarSugestaoConclusao() {
+  const textoAc = projetoAtivo.especialidades.acustica?.texto || "";
+  const preenchidas = [], comNaoConf = [];
+  if (textoAc) {
+    preenchidas.push("Projeto de Condicionamento Acústico");
+    if (textoAc.includes("não conformidade")||textoAc.includes("não foi apresentad")||textoAc.includes("não foram apresentad"))
+      comNaoConf.push("Projeto de Condicionamento Acústico");
+  }
+  if (preenchidas.length === 0)
+    return "(Nenhuma especialidade foi ainda preenchida — preencha os checklists antes de gerar a conclusão.)";
+
+  const nomeObra = (projetoAtivo.introducao?.ambito||"").split("\n")[0].trim() || projetoAtivo.nome;
+  let c = "";
+  c += `Da análise efetuada ao ${FASES[projetoAtivo.fase]} de ${nomeObra}, conclui-se que o mesmo apresenta, de forma global, um nível de desenvolvimento adequado à fase de empreitada, integrando as principais componentes técnicas e regulamentares exigidas para a sua concretização.\n\n`;
+  c += "A revisão realizada permitiu confirmar a existência generalizada das peças escritas e desenhadas necessárias, bem como uma coerência global das soluções propostas, evidenciando que o projeto assenta numa base técnica consistente e devidamente estruturada, ainda que com necessidade de aprimoramento em diversos aspetos.\n\n";
+  if (comNaoConf.length > 0) {
+    c += "Não obstante, foram identificadas várias insuficiências, nomeadamente ao nível da compatibilização entre especialidades, da organização e completude das peças desenhadas, da clareza de algumas memórias descritivas e da consistência dos mapas de quantidades e estimativas orçamentais, aspetos esses que poderão originar dificuldades na fase de execução caso não sejam devidamente corrigidos.\n\n";
+    c += "Verificam-se igualmente lacunas documentais e não conformidades face à legislação em vigor, designadamente no que respeita à atualização de termos de responsabilidade, existência de documentação complementar obrigatória e necessidade de maior detalhe técnico em determinadas especialidades.\n\n";
+    c += "Face ao exposto, considera-se que o projeto reúne condições para avançar para a fase de obra, desde que sejam previamente implementadas as correções e melhorias identificadas, de modo a assegurar a conformidade normativa, a qualidade técnica da solução e a minimização de riscos associados à execução.\n\n";
+  } else {
+    c += "Da análise realizada não foram identificadas não conformidades relevantes nas especialidades revistas, pelo que o presente projeto se encontra, nas matérias verificadas, em conformidade com a legislação e regulamentação aplicável.\n\n";
+    c += "Face ao exposto, considera-se que o projeto reúne condições para avançar para a fase de obra.\n\n";
+  }
+  c += "Em síntese, a adoção das recomendações constantes neste relatório será determinante para garantir uma execução mais eficiente, controlada e alinhada com os interesses do Dono de Obra e da equipa projetista.";
+  return c;
+}
+
+/* ════════════════════════════════
+   RELATÓRIO FINAL
+════════════════════════════════ */
+function abrirRelatorioFinal() {
+  marcarAtivo("btnRelatorioFinal");
+  if (document.querySelector('input[name="ac_gabinete"]'))
+    projetoAtivo.especialidades.acustica.texto = ac_gerarTexto();
+
+  const intro = projetoAtivo.introducao || {};
+  const acOk  = !!projetoAtivo.especialidades.acustica?.texto;
+  const estOk = !!projetoAtivo.especialidades.estabilidade?.texto;
+  const conclusaoExistente = projetoAtivo.conclusao || "";
+  const textoConclusao = conclusaoExistente || gerarSugestaoConclusao();
+
+  document.getElementById("areaConteudo").innerHTML = `
+<div class="container">
+  <h1>Relatório Final</h1>
+  <p class="subtitulo-checklist">${projetoAtivo.nome} &nbsp;·&nbsp; ${FASES[projetoAtivo.fase]}</p>
+
+  <h2>1. Nota Introdutória</h2>
+  <div class="box-principal">
+    <strong>1.1 Âmbito do Relatório</strong><br>
+    <small style="color:#666;">Identifique a obra, localização e descrição sumária.</small><br><br>
+    <textarea id="rf_ambito" rows="10">${intro.ambito||''}</textarea>
+  </div>
+  <div class="box-principal">
+    <strong>1.2 Objetivo</strong><br>
+    <small style="color:#666;">Grau de exigência, enquadramento legal e especialidades objeto de revisão.</small><br><br>
+    <textarea id="rf_objetivo" rows="10">${intro.objetivo||''}</textarea>
+  </div>
+
+  <h2>2. Metodologia <small style="font-weight:normal;color:#888;font-size:13px;">(normativo — incluído automaticamente)</small></h2>
+  <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:14px;color:#777;font-size:13px;max-height:100px;overflow:hidden;">
+    Nível 2 – Verificação da Qualidade de Projeto (Portaria n.º 255/2023). Inclui verificação de peças desenhadas, peças escritas, medições e estimativa orçamental.
+    <br><em style="font-size:12px;">(texto completo incluído no relatório gerado)</em>
+  </div>
+
+  <h2>3 … N. Especialidades <small style="font-weight:normal;color:#888;font-size:13px;">(dos checklists)</small></h2>
+  <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:14px;font-size:13px;">
+    ${acOk?'✅':'⚠️'} <strong>Acústica</strong> — ${acOk?'texto guardado e pronto a incluir.':'ainda não preenchida.'}<br>
+    ${estOk?'✅':'⚠️'} <strong>Estabilidade</strong> — ${estOk?'texto guardado e pronto a incluir.':'ainda não preenchida.'}
+  </div>
+
+  <h2>Conclusão <small style="font-weight:normal;color:#888;font-size:13px;">(editável)</small></h2>
+  <div class="aviso-conclusao">
+    💡 Texto gerado automaticamente com base nos resultados dos checklists. Pode editá-lo livremente — as edições ficam guardadas neste projeto.
+  </div>
+  <textarea id="rf_conclusao" rows="20">${textoConclusao}</textarea>
+
+  <hr style="margin:24px 0;">
+  <button class="btn-preview" onclick="rf_gerar()">
+    📄 Gerar Relatório Final
+    <span class="badge-guardado" id="rf_badge">✓ Guardado</span>
+  </button>
+
+  <h2>Texto Completo — Pronto a Copiar</h2>
+  <textarea id="rf_saida" rows="50" readonly></textarea>
+</div>`;
+}
+
+function rf_gerar() {
+  projetoAtivo.introducao = {
+    ambito:   document.getElementById("rf_ambito").value,
+    objetivo: document.getElementById("rf_objetivo").value
+  };
+  projetoAtivo.conclusao = document.getElementById("rf_conclusao").value;
+  guardarProjetoAtivo();
+
+  const fase = projetoAtivo.fase;
+  let t = "";
+
+  t += "1. NOTA INTRODUTÓRIA\n\n";
+  t += "1.1. Âmbito do Relatório\n\n" + (projetoAtivo.introducao.ambito.trim()||"(Âmbito não preenchido.)") + "\n\n";
+  t += "1.2. Objetivo\n\n" + (projetoAtivo.introducao.objetivo.trim()||"(Objetivo não preenchido.)") + "\n\n";
+  t += TEXTOS_METODOLOGIA[fase] || TEXTOS_METODOLOGIA.execucao;
+
+  let cap = 3;
+  if (projetoAtivo.especialidades.acustica?.texto) {
+    t += "━".repeat(60)+"\n"+`${cap}. PROJETO DE CONDICIONAMENTO ACÚSTICO\n`+"━".repeat(60)+"\n\n";
+    t += projetoAtivo.especialidades.acustica.texto;
+    cap++;
+  }
+  if (projetoAtivo.especialidades.estabilidade?.texto) {
+    t += "━".repeat(60)+"\n"+`${cap}. PROJETO DE ESTRUTURAS E FUNDAÇÕES (ESTABILIDADE)\n`+"━".repeat(60)+"\n\n";
+    t += projetoAtivo.especialidades.estabilidade.texto;
+    cap++;
+  }
+  if (cap === 3) t += "(Nenhuma especialidade foi ainda preenchida.)\n\n";
+
+  t += "━".repeat(60)+"\n"+`${cap}. CONCLUSÃO\n`+"━".repeat(60)+"\n\n";
+  t += projetoAtivo.conclusao.trim() || "(Conclusão não preenchida.)";
+  t += "\n";
+
+  document.getElementById("rf_saida").value = t;
+  document.getElementById("rf_saida").scrollIntoView({ behavior: "smooth" });
+  badge("rf_badge");
+}
+
+
+/* ════════════════════════════════
+   MÓDULO ESTABILIDADE
+════════════════════════════════ */
+function abrirEstabilidade() {
+  marcarAtivo("btn_estabilidade");
+  document.getElementById("areaConteudo").innerHTML = `
+<div class="container">
+<h1>Estruturas e Fundações</h1>
+<p class="subtitulo-checklist">Verificação da Documentação — ${FASES[projetoAtivo.fase]}</p>
+
+<h2>2. Dados do Projetista</h2>
+<div class="box-principal"><strong>Identificação do Gabinete de Projeto</strong><br><br>
+  <input type="radio" name="est_gabinete" value="sim" onchange="est_toggleGabinete()"> Sim &nbsp;
+  <input type="radio" name="est_gabinete" value="nao" onchange="est_toggleGabinete()"> Não
+  <div class="conditional" id="est_gabineteFields" style="display:none;"><br>Nome do Gabinete:<br>
+    <input type="text" id="est_nomeGabinete" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;">
+  </div>
+</div>
+<div class="box-principal"><strong>Identificação do Projetista Responsável</strong><br><br>
+  <input type="radio" name="est_projetista" value="sim" onchange="est_toggleProjetista()"> Sim &nbsp;
+  <input type="radio" name="est_projetista" value="nao" onchange="est_toggleProjetista()"> Não
+  <div class="conditional" id="est_projetistaFields" style="display:none;"><br>
+    Nome:<br><input type="text" id="est_nomeProjetista" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;"><br><br>
+    Associação:<br><input type="text" id="est_associacao" style="width:60%;padding:6px;border:1px solid #ccc;border-radius:4px;"><br><br>
+    N.º de Inscrição:<br><input type="text" id="est_numeroInscricao" style="width:30%;padding:6px;border:1px solid #ccc;border-radius:4px;">
+  </div>
+</div>
+
+<h2>Peças Escritas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças escritas?</strong><br><br>
+  <input type="radio" name="est_pecasEscritas" value="sim" onchange="est_toggleEscritas()"> Sim &nbsp;
+  <input type="radio" name="est_pecasEscritas" value="nao" onchange="est_toggleEscritas()"> Não
+  <div class="conditional" id="est_pecasEscritasFields" style="display:none;"><br>Indique as peças (1 por linha):<br>
+    <textarea id="est_listaEscritas" rows="5"></textarea>
+  </div>
+</div>
+
+<h2>Peças Desenhadas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças desenhadas?</strong><br><br>
+  <input type="radio" name="est_pecasDesenhadas" value="sim" onchange="est_toggleDesenhadas()"> Sim &nbsp;
+  <input type="radio" name="est_pecasDesenhadas" value="nao" onchange="est_toggleDesenhadas()"> Não
+  <div class="conditional" id="est_pecasDesenhadasFields" style="display:none;"><br>Indique as peças (1 por linha):<br>
+    <textarea id="est_listaDesenhadas" rows="5"></textarea>
+  </div>
+</div>
+
+<h2>4. Termo de Responsabilidade</h2>
+<div class="box-principal"><strong>Foi apresentado o Termo de Responsabilidade?</strong><br><br>
+  <input type="radio" name="est_termoResp" value="sim" onchange="est_toggleTermo()"> Sim &nbsp;
+  <input type="radio" name="est_termoResp" value="nao" onchange="est_toggleTermo()"> Não
+</div>
+<div id="est_grupoTermo" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o projetista responsável?</strong><br>
+    <input type="radio" name="est_termo_identificacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_identificacao" value="nao"> Não</div>
+  <div class="section"><strong>Identifica o projeto a que se refere?</strong><br>
+    <input type="radio" name="est_termo_projeto" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_projeto" value="nao"> Não</div>
+  <div class="section"><strong>Contém declaração expressa de responsabilidade?</strong><br>
+    <input type="radio" name="est_termo_responsabilidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_responsabilidade" value="nao"> Não</div>
+  <div class="section"><strong>Encontra-se assinado?</strong><br>
+    <input type="radio" name="est_termo_assinatura" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_assinatura" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta data?</strong><br>
+    <input type="radio" name="est_termo_data" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_data" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="est_termo_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_termo_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>5. Declaração da Associação Profissional</h2>
+<div class="box-principal"><strong>Foi apresentada Declaração da Associação Profissional?</strong><br><br>
+  <input type="radio" name="est_declaracaoAssoc" value="sim" onchange="est_toggleAssociacao()"> Sim &nbsp;
+  <input type="radio" name="est_declaracaoAssoc" value="nao" onchange="est_toggleAssociacao()"> Não
+</div>
+<div id="est_grupoAssociacao" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o técnico?</strong><br>
+    <input type="radio" name="est_assoc_tecnico" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_assoc_tecnico" value="nao"> Não</div>
+  <div class="section"><strong>Indica o número de inscrição?</strong><br>
+    <input type="radio" name="est_assoc_numero" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_assoc_numero" value="nao"> Não</div>
+  <div class="section"><strong>Identifica a associação profissional?</strong><br>
+    <input type="radio" name="est_assoc_entidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_assoc_entidade" value="nao"> Não</div>
+  <div class="section"><strong>Comprova situação ativa do técnico?</strong><br>
+    <input type="radio" name="est_assoc_valido" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_assoc_valido" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="est_assoc_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_assoc_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>6. Seguro de Responsabilidade Civil</h2>
+<div class="box-principal"><strong>Foi apresentada declaração de seguro de responsabilidade civil?</strong><br><br>
+  <input type="radio" name="est_seguroRC" value="sim" onchange="est_toggleSeguro()"> Sim &nbsp;
+  <input type="radio" name="est_seguroRC" value="nao" onchange="est_toggleSeguro()"> Não
+</div>
+<div id="est_grupoSeguro" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica o técnico segurado?</strong><br>
+    <input type="radio" name="est_seguro_tecnico" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_seguro_tecnico" value="nao"> Não</div>
+  <div class="section"><strong>Indica o número da apólice?</strong><br>
+    <input type="radio" name="est_seguro_apolice" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_seguro_apolice" value="nao"> Não</div>
+  <div class="section"><strong>Indica o capital seguro?</strong><br>
+    <input type="radio" name="est_seguro_capital" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_seguro_capital" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta validade em vigor?</strong><br>
+    <input type="radio" name="est_seguro_validade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_seguro_validade" value="nao"> Não</div>
+  <div class="section"><strong>Cumpre os requisitos mínimos formais?</strong><br>
+    <input type="radio" name="est_seguro_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_seguro_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>7. Memória Descritiva</h2>
+<div class="box-principal"><strong>Foi apresentada Memória Descritiva e Justificativa?</strong><br><br>
+  <input type="radio" name="est_md_existencia" value="sim" onchange="est_toggleMemoria()"> Sim &nbsp;
+  <input type="radio" name="est_md_existencia" value="nao" onchange="est_toggleMemoria()"> Não
+</div>
+<div id="est_grupoMemoria" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>7.2 Identificação e descrição geral da obra</strong><br>
+    <input type="radio" name="est_md_descricao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_descricao" value="nao"> Não</div>
+  <div class="section"><strong>7.3 Identificação e caracterização do sistema estrutural adotado</strong><br>
+    <input type="radio" name="est_md_sistema" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_sistema" value="nao"> Não</div>
+  <div class="section"><strong>7.4 Descrição das soluções de fundação adotadas</strong><br>
+    <input type="radio" name="est_md_fundacoes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_fundacoes" value="nao"> Não</div>
+  <div class="section"><strong>7.5 Identificação de materiais estruturais (betão, aço, madeira, etc.)</strong><br>
+    <input type="radio" name="est_md_materiais" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_materiais" value="nao"> Não</div>
+  <div class="section"><strong>7.6 Referência às normas e regulamentos aplicáveis (EC0, EC1, EC2, EC8, etc.)</strong><br>
+    <input type="radio" name="est_md_normas" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_normas" value="nao"> Não</div>
+  <div class="section"><strong>7.7 Articulação com as restantes peças do projeto</strong><br>
+    <input type="radio" name="est_md_articulacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_articulacao" value="nao"> Não</div>
+  <div class="section"><strong>7.8 Conformidade formal da Memória Descritiva</strong><br>
+    <input type="radio" name="est_md_conformidade" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_md_conformidade" value="nao"> Não</div>
+</div>
+
+<h2>8. Cálculos</h2>
+<div class="box-principal"><strong>Foram apresentados cálculos estruturais?</strong><br><br>
+  <input type="radio" name="est_calc_existencia" value="sim" onchange="est_toggleCalculos()"> Sim &nbsp;
+  <input type="radio" name="est_calc_existencia" value="nao" onchange="est_toggleCalculos()"> Não
+</div>
+<div id="est_grupoCalculos" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Apresentados de forma clara e organizada?</strong><br>
+    <input type="radio" name="est_calc_clareza" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_clareza" value="nao"> Não</div>
+  <div class="section"><strong>Permitem justificar as soluções estruturais adotadas?</strong><br>
+    <input type="radio" name="est_calc_justificacao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_justificacao" value="nao"> Não</div>
+  <div class="section"><strong>Verificação do dimensionamento de fundações?</strong><br>
+    <input type="radio" name="est_calc_fundacoes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_fundacoes" value="nao"> Não &nbsp;
+    <input type="radio" name="est_calc_fundacoes" value="na"> N/A</div>
+  <div class="section"><strong>Verificação do dimensionamento de lajes?</strong><br>
+    <input type="radio" name="est_calc_lajes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_lajes" value="nao"> Não &nbsp;
+    <input type="radio" name="est_calc_lajes" value="na"> N/A</div>
+  <div class="section"><strong>Verificação do dimensionamento de vigas?</strong><br>
+    <input type="radio" name="est_calc_vigas" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_vigas" value="nao"> Não &nbsp;
+    <input type="radio" name="est_calc_vigas" value="na"> N/A</div>
+  <div class="section"><strong>Verificação do dimensionamento de pilares?</strong><br>
+    <input type="radio" name="est_calc_pilares" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_pilares" value="nao"> Não &nbsp;
+    <input type="radio" name="est_calc_pilares" value="na"> N/A</div>
+  <div class="section"><strong>Verificação de ação sísmica (EC8)?</strong><br>
+    <input type="radio" name="est_calc_seismica" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_seismica" value="nao"> Não &nbsp;
+    <input type="radio" name="est_calc_seismica" value="na"> N/A</div>
+  <div class="section"><strong>Coerência dos cálculos com a Memória Descritiva?</strong><br>
+    <input type="radio" name="est_calc_coerencia" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_calc_coerencia" value="nao"> Não</div>
+</div>
+
+<h2>9. Condições Técnicas do Caderno de Encargos</h2>
+<div class="box-principal"><strong>Foram apresentadas Condições Técnicas?</strong><br><br>
+  <input type="radio" name="est_ct_existencia" value="sim" onchange="est_toggleCT()"> Sim &nbsp;
+  <input type="radio" name="est_ct_existencia" value="nao" onchange="est_toggleCT()"> Não
+</div>
+<div id="est_grupoCT" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Definem condições de execução dos trabalhos estruturais?</strong><br>
+    <input type="radio" name="est_ct_execucao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_execucao" value="nao"> Não</div>
+  <div class="section"><strong>Especificam classes de resistência dos materiais?</strong><br>
+    <input type="radio" name="est_ct_classes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_classes" value="nao"> Não</div>
+  <div class="section"><strong>Definem requisitos de controlo e ensaios?</strong><br>
+    <input type="radio" name="est_ct_ensaios" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_ensaios" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com a Memória Descritiva?</strong><br>
+    <input type="radio" name="est_ct_coerencia_md" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_coerencia_md" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as peças desenhadas?</strong><br>
+    <input type="radio" name="est_ct_coerencia_pe" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_coerencia_pe" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="est_ct_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_ct_estrutura" value="nao"> Não</div>
+</div>
+
+<h2>10. Peças Desenhadas</h2>
+<div class="box-principal"><strong>Foram apresentadas peças desenhadas?</strong><br><br>
+  <input type="radio" name="est_pd_existencia" value="sim" onchange="est_togglePD()"> Sim &nbsp;
+  <input type="radio" name="est_pd_existencia" value="nao" onchange="est_togglePD()"> Não
+</div>
+<div id="est_grupoPD" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Informação suficiente para a compreensão do projeto?</strong><br>
+    <input type="radio" name="est_pd_compreensao" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_compreensao" value="nao"> Não</div>
+  <div class="section"><strong>Incluem planta de fundações com cotas e pormenores?</strong><br>
+    <input type="radio" name="est_pd_fundacoes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_fundacoes" value="nao"> Não</div>
+  <div class="section"><strong>Incluem plantas e cortes de lajes com armaduras?</strong><br>
+    <input type="radio" name="est_pd_lajes" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_lajes" value="nao"> Não</div>
+  <div class="section"><strong>Incluem pormenorização de vigas e pilares?</strong><br>
+    <input type="radio" name="est_pd_vigas_pilares" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_vigas_pilares" value="nao"> Não</div>
+  <div class="section"><strong>Apresentadas em escala adequada?</strong><br>
+    <input type="radio" name="est_pd_escala" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_escala" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com a Memória Descritiva?</strong><br>
+    <input type="radio" name="est_pd_coerencia_md" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_coerencia_md" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com os cálculos?</strong><br>
+    <input type="radio" name="est_pd_coerencia_calc" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_pd_coerencia_calc" value="nao"> Não</div>
+</div>
+
+<h2>11. Mapa de Quantidades de Trabalhos</h2>
+<div class="box-principal"><strong>Foi apresentado Mapa de Quantidades?</strong><br><br>
+  <input type="radio" name="est_mq_existencia" value="sim" onchange="est_toggleMQ()"> Sim &nbsp;
+  <input type="radio" name="est_mq_existencia" value="nao" onchange="est_toggleMQ()"> Não
+</div>
+<div id="est_grupoMQ" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Identifica a natureza dos trabalhos estruturais?</strong><br>
+    <input type="radio" name="est_mq_natureza" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_natureza" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta quantificação dos trabalhos?</strong><br>
+    <input type="radio" name="est_mq_quantidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_quantidades" value="nao"> Não</div>
+  <div class="section"><strong>Unidades de medição adequadas?</strong><br>
+    <input type="radio" name="est_mq_unidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_unidades" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as peças desenhadas?</strong><br>
+    <input type="radio" name="est_mq_coerencia_pd" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_coerencia_pd" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as Condições Técnicas?</strong><br>
+    <input type="radio" name="est_mq_coerencia_ct" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_coerencia_ct" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="est_mq_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_mq_estrutura" value="nao"> Não</div>
+</div>
+
+<h2>12. Estimativa Orçamental</h2>
+<div class="box-principal"><strong>Foi apresentada Estimativa Orçamental?</strong><br><br>
+  <input type="radio" name="est_orc_existencia" value="sim" onchange="est_toggleORC()"> Sim &nbsp;
+  <input type="radio" name="est_orc_existencia" value="nao" onchange="est_toggleORC()"> Não
+</div>
+<div id="est_grupoORC" class="grupo-secundario" style="display:none;">
+  <div class="section"><strong>Baseia-se nas quantidades de trabalhos apresentadas?</strong><br>
+    <input type="radio" name="est_orc_quantidades" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_quantidades" value="nao"> Não</div>
+  <div class="section"><strong>Identifica os diferentes trabalhos estruturais a executar?</strong><br>
+    <input type="radio" name="est_orc_trabalhos" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_trabalhos" value="nao"> Não</div>
+  <div class="section"><strong>Apresenta custos associados aos trabalhos?</strong><br>
+    <input type="radio" name="est_orc_custos" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_custos" value="nao"> Não</div>
+  <div class="section"><strong>Estrutura clara e organizada?</strong><br>
+    <input type="radio" name="est_orc_estrutura" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_estrutura" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com o Mapa de Quantidades?</strong><br>
+    <input type="radio" name="est_orc_coerencia_mq" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_coerencia_mq" value="nao"> Não</div>
+  <div class="section"><strong>Coerência com as Condições Técnicas?</strong><br>
+    <input type="radio" name="est_orc_coerencia_ct" value="sim"> Sim &nbsp;
+    <input type="radio" name="est_orc_coerencia_ct" value="nao"> Não</div>
+</div>
+
+<hr style="margin-top:30px;">
+<button class="btn-preview" onclick="est_guardarEPreview()">
+  💾 Guardar e fazer preview
+  <span class="badge-guardado" id="est_badge">✓ Guardado no projeto</span>
+</button>
+<h2>Texto gerado – Estabilidade</h2>
+<textarea id="est_relatorioPreview" rows="28" readonly></textarea>
+</div>`;
+}
+
+/* Toggles Estabilidade */
+function est_toggleGabinete()   { document.getElementById("est_gabineteFields").style.display     = r("est_gabinete")==="sim"?"block":"none"; }
+function est_toggleProjetista() { document.getElementById("est_projetistaFields").style.display   = r("est_projetista")==="sim"?"block":"none"; }
+function est_toggleEscritas()   { document.getElementById("est_pecasEscritasFields").style.display= r("est_pecasEscritas")==="sim"?"block":"none"; }
+function est_toggleDesenhadas() { document.getElementById("est_pecasDesenhadasFields").style.display=r("est_pecasDesenhadas")==="sim"?"block":"none"; }
+function est_toggleTermo()      { document.getElementById("est_grupoTermo").style.display         = r("est_termoResp")==="sim"?"block":"none"; }
+function est_toggleAssociacao() { document.getElementById("est_grupoAssociacao").style.display    = r("est_declaracaoAssoc")==="sim"?"block":"none"; }
+function est_toggleSeguro()     { document.getElementById("est_grupoSeguro").style.display        = r("est_seguroRC")==="sim"?"block":"none"; }
+function est_toggleMemoria()    { document.getElementById("est_grupoMemoria").style.display       = r("est_md_existencia")==="sim"?"block":"none"; }
+function est_toggleCalculos()   { document.getElementById("est_grupoCalculos").style.display      = r("est_calc_existencia")==="sim"?"block":"none"; }
+function est_toggleCT()         { document.getElementById("est_grupoCT").style.display            = r("est_ct_existencia")==="sim"?"block":"none"; }
+function est_togglePD()         { document.getElementById("est_grupoPD").style.display            = r("est_pd_existencia")==="sim"?"block":"none"; }
+function est_toggleMQ()         { document.getElementById("est_grupoMQ").style.display            = r("est_mq_existencia")==="sim"?"block":"none"; }
+function est_toggleORC()        { document.getElementById("est_grupoORC").style.display           = r("est_orc_existencia")==="sim"?"block":"none"; }
+
+function est_gerarTexto() {
+  const S = (cond, sim, nao) => cond==="sim" ? sim+"\n" : nao+"\n";
+  const NA= (cond, sim, nao, na) => cond==="sim"?sim+"\n":cond==="nao"?nao+"\n":na+"\n";
+  let t = "";
+
+  t += "1. Considerações Genéricas\n\nDe acordo com o Artigo 7.º da Portaria n.º 255/2023, de 07 de agosto, um Projeto de Execução de Estruturas e Fundações deverá ser constituído pelos seguintes elementos:\n\n";
+  t += "- Memória descritiva e justificativa;\n- Cálculos estruturais;\n- Medições e mapas de quantidade de trabalhos;\n- Orçamento;\n- Peças desenhadas;\n- Condições técnicas do caderno de encargos.\n\n";
+
+  t += "2. Introdução\n\nDados do Projetista:\n\n";
+  t += r("est_gabinete")==="sim" ? `- Gabinete de Projeto: ${v("est_nomeGabinete")};\n` : "- Gabinete de Projeto: Não foi possível identificar os dados do gabinete de projeto.\n";
+  t += r("est_projetista")==="sim" ? `- Projetista Responsável: ${v("est_nomeProjetista")}, inscrito na ${v("est_associacao")} com o n.º ${v("est_numeroInscricao")}.\n\n` : "- Projetista Responsável: Os dados do projetista responsável não se encontram identificáveis.\n\n";
+
+  t += "Peças Escritas:\n\n";
+  if (r("est_pecasEscritas")==="sim") { v("est_listaEscritas").split("\n").forEach(l=>{if(l.trim())t+=`- ${l.trim()};\n`;}); t+="\n"; }
+  else t += "- Não foram anexadas peças escritas.\n\n";
+
+  t += "Peças Desenhadas:\n\n";
+  if (r("est_pecasDesenhadas")==="sim") { v("est_listaDesenhadas").split("\n").forEach(l=>{if(l.trim())t+=`- ${l.trim()}\n`;}); t+="\n"; }
+  else t += "- Não foram anexadas peças desenhadas.\n\n";
+
+  t += "3. Legislação e regulamentação aplicável\n\n";
+  t += "- Eurocódigo 0 (EC0) — Bases para o projeto de estruturas (NP EN 1990);\n";
+  t += "- Eurocódigo 1 (EC1) — Ações em estruturas (NP EN 1991);\n";
+  t += "- Eurocódigo 2 (EC2) — Projeto de estruturas de betão (NP EN 1992);\n";
+  t += "- Eurocódigo 3 (EC3) — Projeto de estruturas de aço (NP EN 1993), quando aplicável;\n";
+  t += "- Eurocódigo 5 (EC5) — Projeto de estruturas de madeira (NP EN 1995), quando aplicável;\n";
+  t += "- Eurocódigo 7 (EC7) — Projeto geotécnico (NP EN 1997);\n";
+  t += "- Eurocódigo 8 (EC8) — Resistência sísmica (NP EN 1998).\n\n";
+
+  t += "4. Termo de Responsabilidade\n\n";
+  if (r("est_termoResp")!=="sim") t += "Não foi apresentado Termo de Responsabilidade, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_termo_identificacao"),"O documento identifica o projetista responsável.","O documento não identifica de forma clara o projetista responsável.");
+    t += S(r("est_termo_projeto"),"O documento identifica o projeto a que se refere.","O documento não identifica de forma clara o projeto a que se refere.");
+    t += S(r("est_termo_responsabilidade"),"O documento contém declaração expressa de responsabilidade técnica.","O documento não contém declaração expressa de responsabilidade técnica.");
+    t += S(r("est_termo_assinatura"),"O documento encontra-se devidamente assinado.","O documento não se encontra devidamente assinado.");
+    t += S(r("est_termo_data"),"O documento apresenta data de emissão.","O documento não apresenta data de emissão.");
+    t += S(r("est_termo_conformidade"),"Em termos formais, o Termo cumpre os requisitos mínimos exigidos.","Em termos formais, o Termo não cumpre os requisitos mínimos exigidos."); t+="\n";
+  }
+
+  t += "5. Declaração da Associação Profissional\n\n";
+  if (r("est_declaracaoAssoc")!=="sim") t += "Não foi apresentada Declaração da Associação Profissional, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_assoc_tecnico"),"A declaração identifica o técnico.","A declaração não identifica de forma clara o técnico.");
+    t += S(r("est_assoc_numero"),"A declaração indica o número de inscrição do técnico.","A declaração não indica de forma clara o número de inscrição.");
+    t += S(r("est_assoc_entidade"),"A declaração identifica a associação profissional.","A declaração não identifica de forma clara a associação profissional.");
+    t += S(r("est_assoc_valido"),"A declaração comprova a situação ativa do técnico.","A declaração não comprova a situação ativa do técnico.");
+    t += S(r("est_assoc_conformidade"),"Em termos formais, a Declaração cumpre os requisitos mínimos.","Em termos formais, a Declaração não cumpre os requisitos mínimos."); t+="\n";
+  }
+
+  t += "6. Seguro de Responsabilidade Civil\n\n";
+  if (r("est_seguroRC")!=="sim") t += "Não foi apresentada declaração de seguro de responsabilidade civil, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_seguro_tecnico"),"A declaração identifica o técnico segurado.","A declaração não identifica de forma clara o técnico segurado.");
+    t += S(r("est_seguro_apolice"),"A declaração indica o número da apólice.","A declaração não indica de forma clara o número da apólice.");
+    t += S(r("est_seguro_capital"),"A declaração indica o capital seguro.","A declaração não indica de forma clara o capital seguro.");
+    t += S(r("est_seguro_validade"),"A declaração apresenta validade em vigor.","A declaração não apresenta validade em vigor.");
+    t += S(r("est_seguro_conformidade"),"Em termos formais, o seguro cumpre os requisitos mínimos.","Em termos formais, o seguro não cumpre os requisitos mínimos."); t+="\n";
+  }
+
+  t += "7. Memória Descritiva\n\n";
+  if (r("est_md_existencia")!=="sim") t += "Não foi apresentada Memória Descritiva e Justificativa, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_md_descricao"),"A Memória Descritiva apresenta a identificação e descrição geral da obra.","A Memória Descritiva não apresenta identificação e descrição geral da obra.");
+    t += S(r("est_md_sistema"),"Identifica e caracteriza o sistema estrutural adotado.","Não identifica nem caracteriza o sistema estrutural adotado.");
+    t += S(r("est_md_fundacoes"),"Descreve as soluções de fundação adotadas.","Não descreve as soluções de fundação adotadas.");
+    t += S(r("est_md_materiais"),"Identifica os materiais estruturais previstos.","Não identifica claramente os materiais estruturais previstos.");
+    t += S(r("est_md_normas"),"Referencia as normas e regulamentos aplicáveis (Eurocódigos).","Não referencia as normas e regulamentos aplicáveis.");
+    t += S(r("est_md_articulacao"),"Apresenta articulação com as restantes peças do projeto.","Não apresenta articulação com as restantes peças do projeto.");
+    t += S(r("est_md_conformidade"),"Em termos formais, a Memória Descritiva cumpre os requisitos mínimos exigidos.","Em termos formais, a Memória Descritiva não cumpre os requisitos mínimos exigidos."); t+="\n";
+  }
+
+  t += "8. Cálculos Estruturais\n\n";
+  if (r("est_calc_existencia")!=="sim") t += "Não foram apresentados cálculos estruturais, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_calc_clareza"),"Os cálculos encontram-se apresentados de forma clara e organizada.","Os cálculos não se encontram apresentados de forma clara e organizada.");
+    t += S(r("est_calc_justificacao"),"Os cálculos permitem justificar as soluções estruturais adotadas.","Os cálculos não permitem justificar adequadamente as soluções estruturais adotadas.");
+    t += NA(r("est_calc_fundacoes"),"Inclui verificação do dimensionamento de fundações.","Não inclui verificação do dimensionamento de fundações.","A verificação de fundações não é aplicável.");
+    t += NA(r("est_calc_lajes"),"Inclui verificação do dimensionamento de lajes.","Não inclui verificação do dimensionamento de lajes.","A verificação de lajes não é aplicável.");
+    t += NA(r("est_calc_vigas"),"Inclui verificação do dimensionamento de vigas.","Não inclui verificação do dimensionamento de vigas.","A verificação de vigas não é aplicável.");
+    t += NA(r("est_calc_pilares"),"Inclui verificação do dimensionamento de pilares.","Não inclui verificação do dimensionamento de pilares.","A verificação de pilares não é aplicável.");
+    t += NA(r("est_calc_seismica"),"Inclui verificação da ação sísmica em conformidade com o EC8.","Não inclui verificação da ação sísmica (EC8).","A verificação sísmica não é aplicável.");
+    t += S(r("est_calc_coerencia"),"Os cálculos apresentam coerência com a Memória Descritiva.","Os cálculos não apresentam coerência com a Memória Descritiva."); t+="\n";
+  }
+
+  t += "9. Condições Técnicas do Caderno de Encargos\n\n";
+  if (r("est_ct_existencia")!=="sim") t += "Não foram apresentadas Condições Técnicas, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_ct_execucao"),"As Condições Técnicas definem as condições de execução dos trabalhos estruturais.","As Condições Técnicas não definem de forma clara as condições de execução.");
+    t += S(r("est_ct_classes"),"Especificam as classes de resistência dos materiais.","Não especificam as classes de resistência dos materiais.");
+    t += S(r("est_ct_ensaios"),"Definem os requisitos de controlo e ensaios.","Não definem os requisitos de controlo e ensaios.");
+    t += S(r("est_ct_coerencia_md"),"Apresentam coerência com a Memória Descritiva.","Não apresentam coerência com a Memória Descritiva.");
+    t += S(r("est_ct_coerencia_pe"),"Apresentam coerência com as peças desenhadas.","Não apresentam coerência com as peças desenhadas.");
+    t += S(r("est_ct_estrutura"),"Apresentam estrutura clara e organizada.","Não apresentam estrutura clara ou organizada."); t+="\n";
+  }
+
+  t += "10. Peças Desenhadas\n\n";
+  if (r("est_pd_existencia")!=="sim") t += "Não foram apresentadas peças desenhadas, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_pd_compreensao"),"As peças desenhadas apresentam informação suficiente para a compreensão do projeto estrutural.","As peças desenhadas não apresentam informação suficiente para a compreensão do projeto.");
+    t += S(r("est_pd_fundacoes"),"Incluem planta de fundações com cotas e pormenores construtivos.","Não incluem planta de fundações com cotas e pormenores construtivos.");
+    t += S(r("est_pd_lajes"),"Incluem plantas e cortes de lajes com indicação de armaduras.","Não incluem plantas e cortes de lajes com indicação de armaduras.");
+    t += S(r("est_pd_vigas_pilares"),"Incluem pormenorização de vigas e pilares.","Não incluem pormenorização de vigas e pilares.");
+    t += S(r("est_pd_escala"),"Encontram-se apresentadas em escala adequada.","Não se encontram apresentadas em escala adequada.");
+    t += S(r("est_pd_coerencia_md"),"Apresentam coerência com a Memória Descritiva.","Não apresentam coerência com a Memória Descritiva.");
+    t += S(r("est_pd_coerencia_calc"),"Apresentam coerência com os cálculos apresentados.","Não apresentam coerência com os cálculos apresentados."); t+="\n";
+  }
+
+  t += "11. Mapa de Quantidades de Trabalhos\n\n";
+  if (r("est_mq_existencia")!=="sim") t += "Não foi apresentado Mapa de Quantidades de Trabalhos, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_mq_natureza"),"O mapa identifica a natureza dos trabalhos estruturais a executar.","O mapa não identifica de forma clara a natureza dos trabalhos a executar.");
+    t += S(r("est_mq_quantidades"),"Apresenta quantificação dos trabalhos a executar.","Não apresenta quantificação adequada dos trabalhos.");
+    t += S(r("est_mq_unidades"),"Apresenta unidades de medição adequadas.","Não apresenta unidades de medição adequadas.");
+    t += S(r("est_mq_coerencia_pd"),"Apresenta coerência com as peças desenhadas.","Não apresenta coerência com as peças desenhadas.");
+    t += S(r("est_mq_coerencia_ct"),"Apresenta coerência com as Condições Técnicas.","Não apresenta coerência com as Condições Técnicas.");
+    t += S(r("est_mq_estrutura"),"Apresenta estrutura clara e organizada.","Não apresenta estrutura clara ou organizada."); t+="\n";
+  }
+
+  t += "12. Estimativa Orçamental\n\n";
+  if (r("est_orc_existencia")!=="sim") t += "Não foi apresentada estimativa orçamental, constituindo uma não conformidade face à legislação aplicável.\n\n";
+  else {
+    t += S(r("est_orc_quantidades"),"A estimativa baseia-se nas quantidades de trabalhos apresentadas.","A estimativa não se baseia de forma clara nas quantidades de trabalhos apresentadas.");
+    t += S(r("est_orc_trabalhos"),"Identifica os diferentes trabalhos estruturais a executar.","Não identifica de forma clara os diferentes trabalhos a executar.");
+    t += S(r("est_orc_custos"),"Apresenta custos associados aos trabalhos identificados.","Não apresenta custos associados de forma clara.");
+    t += S(r("est_orc_estrutura"),"Apresenta estrutura clara e organizada.","Não apresenta estrutura clara ou organizada.");
+    t += S(r("est_orc_coerencia_mq"),"Apresenta coerência com o Mapa de Quantidades.","Não apresenta coerência com o Mapa de Quantidades.");
+    t += S(r("est_orc_coerencia_ct"),"Apresenta coerência com as Condições Técnicas.","Não apresenta coerência com as Condições Técnicas."); t+="\n";
+  }
+
+  return t;
+}
+
+function est_guardarEPreview() {
+  const texto = est_gerarTexto();
+  projetoAtivo.especialidades.estabilidade.texto = texto;
+  guardarProjetoAtivo();
+  const el = document.getElementById("est_relatorioPreview");
+  if (el) el.value = texto;
+  badge("est_badge");
+  renderMenuEspecialidades();
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+
+
+/* ════════════════════════════════
+   PARTILHAS
+════════════════════════════════ */
+async function abrirPartilhar() {
+  if (!projetoAtivo) return;
+  document.getElementById('modalPartilha').style.display = 'flex';
+  await recarregarListaPartilhas();
+}
+
+function fecharModal() {
+  document.getElementById('modalPartilha').style.display = 'none';
+}
+
+async function recarregarListaPartilhas() {
+  const { data } = await sb.from('partilhas').select('*').eq('projeto_id', projetoAtivo.id);
+  const cont = document.getElementById('listaPartilhas');
+  if (!data || data.length === 0) {
+    cont.innerHTML = '<p style="font-size:13px;color:#aaa;margin-bottom:8px;">Nenhum acesso partilhado ainda.</p>';
+    return;
+  }
+  cont.innerHTML = data.map(s => `
+    <div class="partilha-item">
+      <span>${s.email} <span style="color:#888;">(${s.pode_editar ? 'pode editar' : 'só leitura'})</span></span>
+      <button class="btn-remover-partilha" onclick="removerPartilha('${s.id}')">Remover</button>
+    </div>`).join('');
+}
+
+async function adicionarPartilha() {
+  const email = document.getElementById('partilharEmail').value.trim();
+  const podeEditar = document.getElementById('partilharPermissao').value === 'true';
+  if (!email) return;
+  await sb.from('partilhas').upsert(
+    { projeto_id: projetoAtivo.id, email, pode_editar: podeEditar },
+    { onConflict: 'projeto_id,email' }
+  );
+  document.getElementById('partilharEmail').value = '';
+  await recarregarListaPartilhas();
+}
+
+async function removerPartilha(id) {
+  await sb.from('partilhas').delete().eq('id', id);
+  await recarregarListaPartilhas();
+}
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+iniciarSessao();
+
+</script>
+</body>
+</html>
